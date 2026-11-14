@@ -2,7 +2,7 @@
 
 Sistema independente para **planejamento e distribuição diária de trabalhadores em tarefas industriais**, com consulta consolidada por semana. O projeto busca evoluir o planejamento hoje realizado em planilhas, preservando a simplicidade do processo operacional.
 
-> **Estado do projeto:** estrutura Django/PostgreSQL implementada; fechamento da revisão da [issue #1](https://github.com/AldomarAssolin/op-app-industrial/issues/1) em validação. Os modelos de negócio, CRUDs e a visualização semanal descritos abaixo são **requisitos planejados**, não funcionalidades já entregues.
+> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os modelos de negócio, CRUDs e a visualização semanal descritos abaixo são **requisitos planejados**, não funcionalidades já entregues.
 
 ## 1. Objetivo e contexto
 
@@ -258,7 +258,7 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 
 | Issue | Entrega | Situação |
 | --- | --- | --- |
-| #001 | Estrutura Django, PostgreSQL, ambiente e testes | Implementada; revisão de fechamento em validação |
+| #001 | Estrutura Django, PostgreSQL, ambiente e testes | Implementada e validada (9 testes em PostgreSQL) |
 | #002 | Cadastros de setores, funções e trabalhadores | Planejada |
 | #003 | Gestão de tarefas | Planejada |
 | #004 | Alocações diárias | Planejada |

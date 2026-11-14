@@ -36,6 +36,19 @@ Conferir `.gitignore`, arquivos sensíveis e correspondência entre README e con
 
 Os comandos Django acima usaram variáveis descartáveis de revisão, sem credenciais pessoais. A execução local anterior de **9 testes aprovados** permanece como evidência histórica informada na issue, não como resultado desta revisão.
 
+## Resultado da integração no GitHub Actions
+
+A [execução 43637578954](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954), no commit `7ff44fd0b09cb40338ec596fa9ae09a63d4be589`, terminou com sucesso em 14/11/2026. Python 3.12.16, Django 5.2.19 e PostgreSQL 17 via `compose.yaml`.
+
+- Instalação e `pip check`: aprovados.
+- Compose validado e banco saudável.
+- `manage.py check`: sem problemas.
+- Migrações nativas aplicadas; `makemigrations --check --dry-run`: sem alterações; `migrate --check`: aprovado.
+- Suíte completa: **9 testes aprovados**, `Ran 9 tests in 0.703s`, `OK`.
+- Banco temporário `test_op_app_ci` criado e descartado corretamente.
+
+A limitação local da tabela anterior foi suprida pela execução de integração no Actions. O resultado valida o setup, não prontidão para produção nem funcionalidades de negócio.
+
 ## Critério de fechamento
 
 1. Workflow do commit do PR aprovado: instalação, Compose, PostgreSQL saudável, `check`, `migrate`, verificação de migrações e **9 testes aprovados**.
