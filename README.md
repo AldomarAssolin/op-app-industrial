@@ -2,7 +2,7 @@
 
 Sistema independente para **planejamento e distribuição diária de trabalhadores em tarefas industriais**, com consulta consolidada por semana. O projeto busca evoluir o planejamento hoje realizado em planilhas, preservando a simplicidade do processo operacional.
 
-> **Estado do projeto:** fase inicial de estruturação (Issue #001). Os modelos de negócio, CRUDs e a visualização semanal descritos abaixo são **requisitos planejados**, não funcionalidades já entregues.
+> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os modelos de negócio, CRUDs e a visualização semanal descritos abaixo são **requisitos planejados**, não funcionalidades já entregues.
 
 ## 1. Objetivo e contexto
 
@@ -61,7 +61,7 @@ Django (host Linux / .venv; porta 8000)
 PostgreSQL (Docker; 127.0.0.1:5433)
 ```
 
-### Organização prevista
+### Organização atual
 
 ```text
 op-app-industrial/
@@ -78,17 +78,17 @@ op-app-industrial/
 ├── config/
 │   ├── settings.py
 │   └── urls.py
-├── docs/
-├── static/
-├── templates/
+├── .github/workflows/setup.yml
+├── docs/issue-001-validacao.md
 ├── .env.example
 ├── .gitignore
 ├── compose.yaml
 ├── manage.py
+├── requirements.txt
 └── README.md
 ```
 
-> A árvore acima é a **estrutura de referência**; confirme os arquivos existentes no repositório antes de considerar qualquer item implementado.
+> Os apps ainda não possuem modelos de negócio. As pastas globais `static/` e `templates/` não existem nesta entrega; `TEMPLATES[0]["DIRS"]` está vazio e os templates do Admin vêm do Django.
 
 ## 4. Requisitos de desenvolvimento
 
@@ -107,10 +107,11 @@ Execute os comandos a partir da raiz do repositório.
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install 'Django>=5.2,<5.3' 'psycopg[binary]>=3,<4' python-dotenv
+python -m pip install -r requirements.txt
+python -m pip check
 ```
 
-> Caso o repositório passe a fornecer `pyproject.toml` ou `requirements.txt` com dependências fixadas, prefira instalar pelo manifesto versionado para garantir reprodutibilidade.
+> `requirements.txt` fixa as dependências diretas e transitivas da revisão do setup. Atualizações devem ser deliberadas e acompanhadas da execução da suíte em PostgreSQL.
 
 ### 5.2 Configurar as variáveis de ambiente
 
@@ -142,11 +143,11 @@ O arquivo `.env` **não deve** ser enviado ao Git. Confirme que o `.gitignore` c
 
 ```bash
 docker compose config --quiet
-docker compose up -d db
+docker compose up -d --wait --wait-timeout 90 db
 docker compose ps
 ```
 
-Na configuração de desenvolvimento prevista, o PostgreSQL é acessado somente por `127.0.0.1:5433`. Aguarde o serviço `db` apresentar estado saudável (*healthy*), caso o `healthcheck` esteja configurado.
+Em `compose.yaml`, o PostgreSQL 17 é publicado somente em `127.0.0.1:5433`, com `healthcheck`. O comando acima aguarda o banco ficar saudável. Se o Compose instalado não suportar `--wait`, use `docker compose up -d db` e confira o estado `healthy` em `docker compose ps` antes de continuar.
 
 ### 5.4 Aplicar migrações e iniciar o Django
 
@@ -175,7 +176,7 @@ docker compose down
 
 ## 6. Testes automatizados
 
-Os testes de infraestrutura propostos na Issue #001 verificam:
+Os nove testes de infraestrutura implementados na issue #1 verificam:
 
 - Registro dos aplicativos `organizacao` e `planejamento`.
 - Uso do backend PostgreSQL.
@@ -202,11 +203,15 @@ Verificações auxiliares:
 ```bash
 python manage.py check
 python manage.py showmigrations
+python manage.py makemigrations --check --dry-run
+python manage.py migrate --check
 ```
 
 **Banco de testes:** testes que usam `TestCase` criam e descartam um banco separado (habitualmente `test_op_app_dev`). O usuário de PostgreSQL precisa ter permissão para criar o banco de testes. **Nunca configure esses testes para utilizar o banco de produção.**
 
-> A suíte sugerida contém 9 testes quando todos os testes de infraestrutura previamente planejados forem adicionados. A quantidade efetiva e o resultado devem ser confirmados por execução local; este README não os declara aprovados.
+> A suíte contém 9 testes: 4 de registro dos apps e 5 de banco/autenticação/Admin. A issue #1 registra uma execução local anterior aprovada. Resultados da revisão atual e suas limitações estão em [docs/issue-001-validacao.md](docs/issue-001-validacao.md).
+
+O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, valida o Compose real do projeto, inicia PostgreSQL 17, aplica e confere migrações e roda a suíte em Python 3.12. Os valores de ambiente do CI são descartáveis e não usam credenciais locais. O `down -v` do workflow remove apenas o banco descartável do runner; não é uma instrução de limpeza para seu banco local.
 
 ## 7. Decisões de domínio (planejadas)
 
@@ -236,7 +241,7 @@ Essas decisões orientam as próximas issues e **ainda não representam funciona
 Branch de referência para esta etapa:
 
 ```text
-feature/issue-001-django-setup
+chore/issue-001-setup-review
 ```
 
 Antes de abrir um pull request:
@@ -253,14 +258,14 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 
 | Issue | Entrega | Situação |
 | --- | --- | --- |
-| #001 | Estrutura Django, PostgreSQL, ambiente e testes | Em desenvolvimento / validação |
+| #001 | Estrutura Django, PostgreSQL, ambiente e testes | Implementada e validada (9 testes em PostgreSQL) |
 | #002 | Cadastros de setores, funções e trabalhadores | Planejada |
 | #003 | Gestão de tarefas | Planejada |
 | #004 | Alocações diárias | Planejada |
 | #005 | Visualização semanal | Planejada |
 | #006 | Permissões e validação do MVP | Planejada |
 
-*As identificações acima seguem o planejamento desta conversa; verifique a numeração real das issues no GitHub antes de criar referências automáticas.*
+*Numeração conferida nas issues do repositório. Consulte o GitHub para o estado atualizado.*
 
 ## 11. Documentação
 
