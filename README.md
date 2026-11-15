@@ -2,7 +2,7 @@
 
 Sistema independente para **planejamento e distribuição diária de trabalhadores em tarefas industriais**, com consulta consolidada por semana. O projeto busca evoluir o planejamento hoje realizado em planilhas, preservando a simplicidade do processo operacional.
 
-> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os cadastros organizacionais da issue #2 estão implementados no Django Admin. Tarefas, alocações e visualização semanal continuam planejadas.
+> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os cadastros organizacionais da issue #2 estão implementados no Django Admin. As tarefas da issue #3 possuem cadastro e ciclo de vida no Admin. Alocações e visualização semanal continuam planejadas.
 
 ## 1. Objetivo e contexto
 
@@ -34,7 +34,7 @@ O OP-APP é **independente do GTH Agents**: possui repositório, banco de dados,
 | Módulo | Responsabilidade |
 | --- | --- |
 | Organização | Cadastro de setores, funções e trabalhadores no Admin (issue #2) |
-| Planejamento | Cadastro de tarefas e alocações diárias |
+| Planejamento | Tarefas e histórico no Admin (issue #3); alocações diárias planejadas |
 | Consulta semanal | Exibição de alocações por trabalhador, tarefa e dia, com filtros por semana e setor |
 | Autorização operacional | Restrições de acesso por papel e setor |
 
@@ -81,6 +81,7 @@ op-app-industrial/
 ├── .github/workflows/setup.yml
 ├── docs/issue-001-validacao.md
 ├── docs/organizacao.md
+├── docs/tarefas.md
 ├── .env.example
 ├── .gitignore
 ├── compose.yaml
@@ -89,7 +90,7 @@ op-app-industrial/
 └── README.md
 ```
 
-> `organizacao` possui os modelos Setor, Funcao e Trabalhador e a migração `0001_initial`; `planejamento` ainda não possui modelos de negócio. As pastas globais `static/` e `templates/` não existem nesta entrega; `TEMPLATES[0]["DIRS"]` está vazio e os templates do Admin vêm do Django.
+> `organizacao` possui os modelos Setor, Funcao e Trabalhador e a migração `0001_initial`; `planejamento` possui Tarefa, HistoricoTarefa e a migração `0001_initial`. As pastas globais `static/` e `templates/` não existem nesta entrega; `TEMPLATES[0]["DIRS"]` está vazio e os templates do Admin vêm do Django.
 
 ## 4. Requisitos de desenvolvimento
 
@@ -210,7 +211,7 @@ python manage.py migrate --check
 
 **Banco de testes:** testes que usam `TestCase` criam e descartam um banco separado (habitualmente `test_op_app_dev`). O usuário de PostgreSQL precisa ter permissão para criar o banco de testes. **Nunca configure esses testes para utilizar o banco de produção.**
 
-> A base da issue #1 contém 9 testes: 4 de registro dos apps e 5 de banco/autenticação/Admin. A issue #2 acrescenta testes de modelos e fluxos do Admin; rode a suíte completa para validar o total atual. A issue #1 registra uma execução local anterior aprovada. Resultados da revisão atual e suas limitações estão em [docs/issue-001-validacao.md](docs/issue-001-validacao.md).
+> A base da issue #1 contém 9 testes: 4 de registro dos apps e 5 de banco/autenticação/Admin. As issues #2 e #3 acrescentam testes de modelos e fluxos do Admin; rode a suíte completa para validar o total atual. A issue #1 registra uma execução local anterior aprovada. Resultados da revisão atual e suas limitações estão em [docs/issue-001-validacao.md](docs/issue-001-validacao.md).
 
 O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, valida o Compose real do projeto, inicia PostgreSQL 17, aplica e confere migrações e roda a suíte em Python 3.12. Os valores de ambiente do CI são descartáveis e não usam credenciais locais. O `down -v` do workflow remove apenas o banco descartável do runner; não é uma instrução de limpeza para seu banco local.
 
@@ -225,13 +226,17 @@ O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, 
 - Equipes serão dinâmicas, formadas pelas alocações, sem cadastro de equipes fixas no MVP.
 - Função profissional e perfil de acesso serão conceitos distintos.
 
-As regras de tarefas e alocações orientam as próximas issues. Os cadastros organizacionais já estão implementados; consulte [docs/organizacao.md](docs/organizacao.md) para normalização, homônimos, inativação, exclusão protegida e uso no Admin.
+As regras de tarefas estão implementadas; alocações orientam as próximas issues. Os cadastros organizacionais já estão implementados; consulte [docs/organizacao.md](docs/organizacao.md) para normalização, homônimos, inativação, exclusão protegida e uso no Admin.
 
 ### Cadastros organizacionais no Admin
 
 Após aplicar as migrações, entre em `/admin/` e cadastre setores, funções e trabalhadores no grupo **Organização**. Nomes de setores e funções são únicos sem distinção de caixa; trabalhadores admitem homônimos e são identificados por ID. Setor e função principal são obrigatórios. Para descontinuar cadastros, desmarque **Ativo**: os vínculos são preservados. Setores e funções com trabalhadores vinculados não podem ser excluídos.
 
 Veja o roteiro e as decisões em [docs/organizacao.md](docs/organizacao.md).
+
+### Tarefas operacionais no Admin
+
+Em **Planejamento operacional → Tarefas**, cadastre título, setor e período previsto. A tarefa começa pendente; conclusão exige início explícito, cancelamento preserva o cadastro e reabertura retorna a pendente. Prazo vencido não altera status. O histórico registra mudanças de status, período e setor e protege a tarefa contra exclusão. Consulte [docs/tarefas.md](docs/tarefas.md) para a tabela de transições e o exemplo **Eixo THC 95**.
 
 ## 8. Segurança e limites do projeto
 
@@ -248,7 +253,7 @@ Veja o roteiro e as decisões em [docs/organizacao.md](docs/organizacao.md).
 Branch de referência para esta etapa:
 
 ```text
-feature/issue-002-organizacao
+feature/issue-003-tarefas
 ```
 
 Antes de abrir um pull request:
@@ -267,7 +272,7 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 | --- | --- | --- |
 | #001 | Estrutura Django, PostgreSQL, ambiente e testes | Implementada e validada (9 testes em PostgreSQL) |
 | #002 | Cadastros de setores, funções e trabalhadores | Implementados no Admin; validação pelo CI |
-| #003 | Gestão de tarefas | Planejada |
+| #003 | Gestão de tarefas | Implementada no Admin; validação pelo CI |
 | #004 | Alocações diárias | Planejada |
 | #005 | Visualização semanal | Planejada |
 | #006 | Permissões e validação do MVP | Planejada |
