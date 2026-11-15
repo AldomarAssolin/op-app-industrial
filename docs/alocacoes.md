@@ -30,6 +30,8 @@ No Admin, **Planejamento operacional → Alocações diárias → Alocar vários
 
 O serviço `alocar_dias` recebe uma lista explícita de datas e usa `transaction.atomic`: ou todos os registros são criados, ou nenhum. Data repetida na seleção, duplicata existente, dia fora do período ou outro erro reverte todo o lote. Não há sobrescrita silenciosa de alocações existentes.
 
+No cadastro/edição de um dia, conflitos detectados apenas durante o salvamento (por exemplo, outra pessoa alocou o mesmo dia ou encerrou a tarefa após a validação do formulário) revertem a transação e reapresentam o formulário com os dados digitados e uma mensagem de erro. O Admin não tenta salvar novamente automaticamente. As falhas de permissão continuam retornando acesso negado.
+
 As gravações bloqueiam as linhas de tarefas/trabalhadores durante a validação, e a alteração de prazo usa o mesmo bloqueio de tarefa. A constraint do banco reforça a unicidade, inclusive entre operações simultâneas.
 
 ```python
