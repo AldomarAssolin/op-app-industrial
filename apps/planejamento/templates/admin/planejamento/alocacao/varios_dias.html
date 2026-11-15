@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <p>Escolha o período e os dias da semana. Todos os dias serão gravados juntos; se algum for inválido ou duplicado, nenhum será criado.</p>
+  <p>Uma alocação registra a participação naquele dia; não representa jornada completa nem contabiliza horas.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Criar alocações">
+    <a href="{% url 'admin:planejamento_alocacao_changelist' %}">Voltar às alocações</a>
+  </form>
+{% endblock %}
