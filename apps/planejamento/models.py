@@ -1,5 +1,7 @@
 from datetime import date
 
+from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
 from django.db.models import F, Q
@@ -80,6 +82,12 @@ class Tarefa(models.Model):
         if erros:
             raise ValidationError(erros)
 
+        if self.pk and isinstance(self.inicio_previsto, date) and isinstance(self.fim_previsto, date):
+            if self.alocacoes.exclude(data__range=(self.inicio_previsto, self.fim_previsto)).exists():
+                raise ValidationError({
+                    "fim_previsto": "O período deve abranger todas as alocações existentes. Corrija os dias antes de reduzir o prazo."
+                })
+
     def save(self, *args, **kwargs):
         update_fields = kwargs.get("update_fields")
         if update_fields is not None and not update_fields:
@@ -122,3 +130,98 @@ class HistoricoTarefa(models.Model):
         verbose_name = "registro de planejamento"
         verbose_name_plural = "histórico do planejamento"
         ordering = ("registrado_em", "pk")
+
+
+def exigir_permissao(ator, operacao):
+    if (ator is None or not ator.is_authenticated or not ator.is_active
+            or not ator.has_perm(f"planejamento.{operacao}_alocacao")):
+        raise PermissionDenied("Usuário sem permissão para esta operação de alocação.")
+
+
+class Alocacao(models.Model):
+    trabalhador = models.ForeignKey("organizacao.Trabalhador", on_delete=models.PROTECT,
+                                    related_name="alocacoes", verbose_name="trabalhador")
+    tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name="alocacoes")
+    data = models.DateField("data")
+    funcao_desempenhada = models.ForeignKey("organizacao.Funcao", on_delete=models.PROTECT,
+                                           related_name="alocacoes", verbose_name="função desempenhada")
+    observacao = models.TextField("observação", blank=True)
+    criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                   related_name="alocacoes_criadas", editable=False)
+    alterado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                     related_name="alocacoes_alteradas", editable=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    alterado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "alocação diária"
+        verbose_name_plural = "alocações diárias"
+        ordering = ("data", "trabalhador_id", "pk")
+        constraints = [models.UniqueConstraint(
+            fields=("trabalhador", "tarefa", "data"), name="planejamento_alocacao_dia_unico",
+            violation_error_message="Este trabalhador já está alocado nesta tarefa nesta data.",
+        )]
+        indexes = [models.Index(fields=("data", "tarefa"), name="alocacao_data_tarefa_idx")]
+
+    def __str__(self):
+        return f"{self.trabalhador} | {self.tarefa} | {self.data}"
+
+    def clean(self):
+        super().clean()
+        erros = {}
+        # Campos inválidos também passam por clean() no ModelForm.
+        if self.trabalhador_id:
+            from apps.organizacao.models import Trabalhador
+            trabalhador = Trabalhador.objects.filter(pk=self.trabalhador_id).first()
+            if trabalhador is not None and not trabalhador.ativo:
+                erros["trabalhador"] = "Trabalhador inativo não pode receber alocações."
+        if self.tarefa_id:
+            tarefa = Tarefa.objects.filter(pk=self.tarefa_id).first()
+            if tarefa is not None:
+                if tarefa.status in {Tarefa.Status.CONCLUIDA, Tarefa.Status.CANCELADA}:
+                    erros["tarefa"] = "Reabra a tarefa antes de criar ou alterar alocações."
+                if isinstance(self.data, date) and not tarefa.inicio_previsto <= self.data <= tarefa.fim_previsto:
+                    erros["data"] = "A data deve estar dentro do período previsto da tarefa."
+        if erros:
+            raise ValidationError(erros)
+
+    def save(self, *args, ator=None, **kwargs):
+        from apps.organizacao.models import Trabalhador
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and not update_fields:
+            return
+        # A aplicação usa um único banco PostgreSQL.
+        exigir_permissao(ator, "add" if self._state.adding else "change")
+        with transaction.atomic():
+            anterior = type(self).objects.filter(pk=self.pk).first() if self.pk else None
+            if anterior and update_fields is not None:
+                for campo in ("trabalhador", "tarefa", "data", "funcao_desempenhada", "observacao"):
+                    field = self._meta.get_field(campo)
+                    if campo not in update_fields and field.attname not in update_fields:
+                        setattr(self, field.attname, getattr(anterior, field.attname))
+            # Mesma linha bloqueada pelo replanejamento de Tarefa.save().
+            tarefas = {self.tarefa_id} | ({anterior.tarefa_id} if anterior else set())
+            trabalhadores = {self.trabalhador_id} | ({anterior.trabalhador_id} if anterior else set())
+            list(Tarefa.objects.select_for_update().filter(pk__in=tarefas).order_by("pk"))
+            list(Trabalhador.objects.select_for_update().filter(pk__in=trabalhadores).order_by("pk"))
+            atual = type(self).objects.select_for_update().filter(pk=self.pk).first() if self.pk else None
+            if anterior and atual is None:
+                raise ValidationError("A alocação foi removida. Recarregue a página.")
+            if anterior and atual and any(getattr(anterior, campo) != getattr(atual, campo)
+                                         for campo in ("tarefa_id", "trabalhador_id", "data")):
+                raise ValidationError("A alocação mudou durante a operação. Recarregue e tente novamente.")
+            if anterior:
+                exigir_permissao(ator, "change")
+                self.criado_por_id = anterior.criado_por_id
+            else:
+                exigir_permissao(ator, "add")
+                self.criado_por = ator
+            self.alterado_por = ator
+            self.full_clean()
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"alterado_por", "alterado_em"}
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, ator=None, **kwargs):
+        exigir_permissao(ator, "delete")
+        return super().delete(*args, **kwargs)

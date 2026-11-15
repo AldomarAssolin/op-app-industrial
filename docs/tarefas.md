@@ -59,4 +59,4 @@ python manage.py test -v 2 --noinput
 
 Os testes novos cobrem períodos multissemanas, obrigatoriedade, constraints reais do banco, todas as combinações de transições, vencimento sem conclusão automática, reabertura, replanejamento, gravação parcial, rollback, proteção de exclusão e fluxos do Admin. O CI usa Python 3.12 e PostgreSQL 17 pelo Compose existente.
 
-Fora do escopo: alocações, trabalhadores em tarefas, equipamentos, manutenção, apontamento de produção e medição de produtividade. A issue #4 deverá proteger os vínculos de alocação e validar suas datas ao replanejar; ainda não há alocações a validar nesta entrega.
+As alocações diárias foram acrescentadas na issue #4: consulte [alocacoes.md](alocacoes.md). O replanejamento agora precisa abranger todos os dias já alocados; corrigir/remover dias incompatíveis deve preceder a redução do período. Encerrar uma tarefa preserva as alocações e impede novas gravações nelas até reabrir. Equipamentos, manutenção, apontamento de produção e produtividade permanecem fora do escopo.
