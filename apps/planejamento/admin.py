@@ -52,6 +52,34 @@ class AlocacaoAdmin(admin.ModelAdmin):
     readonly_fields = ("criado_por", "alterado_por", "criado_em", "alterado_em")
     change_list_template = "admin/planejamento/alocacao/change_list.html"
 
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        try:
+            return super().changeform_view(request, object_id, form_url, extra_context)
+        except ValidationError as erro:
+            if request.method != "POST":
+                raise
+            # O atomic do Admin já foi revertido. Reapresenta o POST como
+            # inválido, sem repetir save_model nem perder os dados digitados.
+            request._alocacao_erro_gravacao = " ".join(erro.messages)
+            try:
+                return super().changeform_view(request, object_id, form_url, extra_context)
+            finally:
+                del request._alocacao_erro_gravacao
+
+    def get_form(self, request, obj=None, **kwargs):
+        form_class = super().get_form(request, obj, **kwargs)
+        erro = getattr(request, "_alocacao_erro_gravacao", None)
+        if erro is None:
+            return form_class
+
+        class FormComConflito(form_class):
+            def clean(self):
+                dados = super().clean()
+                self.add_error(None, erro)
+                return dados
+
+        return FormComConflito
+
     def get_urls(self):
         return [path("varios-dias/", self.admin_site.admin_view(self.alocar_varios_dias),
                      name="planejamento_alocacao_varios_dias")] + super().get_urls()

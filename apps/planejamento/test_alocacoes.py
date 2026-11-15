@@ -9,7 +9,7 @@ from django.contrib.auth.models import AnonymousUser, Permission
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, close_old_connections, connection, transaction
 from django.db.models.deletion import ProtectedError
-from django.test import TestCase, TransactionTestCase
+from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 
 from apps.organizacao.models import Funcao, Setor, Trabalhador
@@ -271,9 +271,93 @@ class AlocacaoAdminTests(AlocacaoBase):
         self.assertEqual(list(resposta.context["cl"].queryset), [registro])
         self.assertContains(resposta, "Alocar vários dias")
 
+    def test_erro_tardio_apos_insert_reverte_e_reexibe_formulario(self):
+        original = Alocacao.save
+        def salvar(objeto, *args, **kwargs):
+            original(objeto, *args, **kwargs)
+            raise ValidationError("A alocação entrou em conflito com outra gravação.")
+        with patch.object(Alocacao, "save", salvar):
+            resposta = self.client.post(reverse("admin:planejamento_alocacao_add"), self.dados())
+        self.assertEqual(resposta.status_code, 200)
+        form = resposta.context["adminform"].form
+        self.assertTrue(form.is_bound)
+        self.assertIn("conflito", " ".join(form.non_field_errors()))
+        self.assertEqual(form["observacao"].value(), "Montagem do eixo")
+        self.assertFalse(Alocacao.objects.exists())
+
+    def test_erro_tardio_na_edicao_preserva_registro_e_autoria(self):
+        registro = self.alocar(observacao="Original")[0]
+        original = Alocacao.save
+        chamadas = []
+        def salvar(objeto, *args, **kwargs):
+            chamadas.append(objeto.pk)
+            original(objeto, *args, **kwargs)
+            raise ValidationError({"data": ["O prazo foi alterado durante a gravação."]})
+        with patch.object(Alocacao, "save", salvar):
+            resposta = self.client.post(reverse("admin:planejamento_alocacao_change", args=[registro.pk]),
+                                       self.dados(observacao="Correção tentada"))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(chamadas, [registro.pk])
+        form = resposta.context["adminform"].form
+        self.assertIn("prazo", " ".join(form.non_field_errors()))
+        self.assertEqual(form["observacao"].value(), "Correção tentada")
+        registro.refresh_from_db()
+        self.assertEqual(registro.observacao, "Original")
+        self.assertEqual(registro.alterado_por, self.ator)
+
+    def test_mudanca_de_tarefa_entre_validacao_e_save_vira_erro_de_formulario(self):
+        original = Alocacao.save
+        for alteracao in ({"status": "CANCELADA"}, {"inicio_previsto": date(2026, 11, 3)}):
+            with self.subTest(alteracao=alteracao):
+                def salvar(objeto, *args, **kwargs):
+                    Tarefa.objects.filter(pk=self.tarefa.pk).update(**alteracao)
+                    return original(objeto, *args, **kwargs)
+                with patch.object(Alocacao, "save", salvar):
+                    resposta = self.client.post(reverse("admin:planejamento_alocacao_add"), self.dados())
+                self.assertEqual(resposta.status_code, 200)
+                self.assertTrue(resposta.context["adminform"].form.non_field_errors())
+                self.assertFalse(Alocacao.objects.exists())
+
 
 @skipUnless(connection.vendor == "postgresql", "Concorrência exige PostgreSQL")
 class AlocacaoConcorrenciaTests(TransactionTestCase):
+    def test_admin_concorrente_retorna_formulario_em_vez_de_erro_500(self):
+        ator = get_user_model().objects.create_superuser(username="gestor_admin_concorrencia")
+        setor = Setor.objects.create(nome="Caldeiraria")
+        funcao = Funcao.objects.create(nome="Soldagem")
+        trabalhador = Trabalhador.objects.create(nome="Pessoa Exemplo", setor_principal=setor,
+                                                 funcao_principal=funcao)
+        tarefa = Tarefa.objects.create(titulo="Eixo THC 95", setor=setor,
+            inicio_previsto=date(2026, 11, 2), fim_previsto=date(2026, 11, 20))
+        clientes = [Client(), Client()]
+        for cliente in clientes:
+            cliente.force_login(ator)
+        barreira = Barrier(2, timeout=10)
+        original = Alocacao.save
+        def salvar(objeto, *args, **kwargs):
+            # Ambos os formulários já passaram por is_valid() neste ponto.
+            barreira.wait()
+            return original(objeto, *args, **kwargs)
+        def enviar(cliente):
+            close_old_connections()
+            try:
+                resposta = cliente.post(reverse("admin:planejamento_alocacao_add"), {
+                    "trabalhador": trabalhador.pk, "tarefa": tarefa.pk,
+                    "data": "2026-11-02", "funcao_desempenhada": funcao.pk,
+                    "observacao": "Dados preservados",
+                })
+                if resposta.status_code == 200:
+                    self.assertContains(resposta, "errorlist")
+                    self.assertContains(resposta, "Dados preservados")
+                return resposta.status_code
+            finally:
+                close_old_connections()
+        with patch.object(Alocacao, "save", salvar), ThreadPoolExecutor(max_workers=2) as executor:
+            futuros = [executor.submit(enviar, cliente) for cliente in clientes]
+            resultados = [futuro.result(timeout=20) for futuro in futuros]
+        self.assertCountEqual(resultados, [200, 302])
+        self.assertEqual(Alocacao.objects.count(), 1)
+
     def test_duas_operacoes_simultaneas_nao_duplicam_alocacao(self):
         ator = get_user_model().objects.create_superuser(username="gestor_concorrencia")
         setor = Setor.objects.create(nome="Caldeiraria")
