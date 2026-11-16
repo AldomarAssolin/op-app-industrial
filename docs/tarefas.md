@@ -17,7 +17,7 @@ Toda tarefa nova começa **PENDENTE**. O usuário autorizado muda o estado no Ad
 | CONCLUIDA | PENDENTE (reabertura) |
 | CANCELADA | PENDENTE (reabertura) |
 
-Salvar sem mudar o estado é permitido. Concluir exige passar por EM_ANDAMENTO; para retomar uma tarefa encerrada, primeiro selecione PENDENTE. Depois é possível iniciá-la novamente. Reabertura usa a permissão nativa de alteração de tarefa nesta etapa; perfis e escopo por setor pertencem à issue #6.
+Salvar sem mudar o estado é permitido. Concluir exige passar por EM_ANDAMENTO; para retomar uma tarefa encerrada, primeiro selecione PENDENTE. Depois é possível iniciá-la novamente. Reabertura exige permissão de alteração de tarefa e setor autorizado conforme a política da issue #6, em [seguranca-piloto.md](seguranca-piloto.md).
 
 Prazo vencido **não conclui nem cancela automaticamente** uma tarefa. Por exemplo, se o prazo de Eixo THC 95 terminou e falta material, ela pode continuar em andamento, com essa informação em observações.
 
@@ -28,7 +28,7 @@ Prazo vencido **não conclui nem cancela automaticamente** uma tarefa. Por exemp
 - Descrição, título e observações continuam editáveis em estados finais, para correções e notas.
 - O registro inicial e cada mudança de estado, período ou setor geram um `HistoricoTarefa` com data/hora e uma fotografia dos quatro valores. Salvar sem mudança operacional não duplica registros.
 - A tarefa e seu registro são gravados na mesma transação. Atualizações bloqueiam a linha da tarefa enquanto validam o estado persistido e gravam o histórico.
-- O histórico aparece somente para leitura no Admin; não pode ser criado, alterado ou excluído pelo formulário. Ele não substitui o log nativo de autoria das edições no Admin, nem é um registro inviolável para quem tem acesso direto ao banco.
+- Novos registros gerados pelo Admin incluem o usuário autenticado; registros anteriores/seed podem ter autor vazio. O histórico aparece somente para leitura no Admin, restrito aos setores autorizados; não pode ser criado, alterado ou excluído pelo formulário. Ele não substitui o log nativo de autoria das edições no Admin, nem é um registro inviolável para quem tem acesso direto ao banco.
 
 Toda tarefa criada pelo fluxo suportado já possui histórico. A exclusão fica desabilitada no Admin e `PROTECT` no vínculo histórico → tarefa bloqueia exclusão pelo ORM, inclusive em lote. Para desistir de uma atividade, cancele-a. O setor atual e setores preservados no histórico também são protegidos contra exclusão. Setores inativos continuam disponíveis, conforme o comportamento dos cadastros organizacionais.
 

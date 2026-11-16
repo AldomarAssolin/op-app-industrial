@@ -12,7 +12,7 @@ from django.db.models.deletion import ProtectedError
 from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 
-from apps.organizacao.models import Funcao, Setor, Trabalhador
+from apps.organizacao.models import Funcao, Setor, Trabalhador, UsuarioSetor
 from .forms import AlocacaoMultidiaForm
 from .models import Alocacao, Tarefa
 from .services import alocar_dias, consultar_alocacoes
@@ -118,6 +118,7 @@ class AlocacaoTests(AlocacaoBase):
         editor = get_user_model().objects.create_user(username="editor")
         editor.user_permissions.add(Permission.objects.get(
             content_type__app_label="planejamento", codename="change_alocacao"))
+        UsuarioSetor.objects.create(usuario=editor, setor=self.setor)
         registro.criado_por = editor  # Tentativa de trocar o criador é ignorada.
         registro.observacao = "Correção"
         registro.save(ator=editor)

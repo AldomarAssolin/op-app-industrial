@@ -248,9 +248,13 @@ Em **Planejamento operacional → Alocações diárias**, cadastre ou corrija um
 
 Abra `/planejamento/semanal/` ou o link **Quadro semanal** na listagem de alocações. Selecione uma data da semana e um setor autorizado; os links anterior/próxima preservam os filtros. Duas tarefas no mesmo dia aparecem em linhas diferentes. Sábado/domingo são incluídos quando selecionados ou quando há alocações nesses dias. A tela oferece estilo de impressão e exige `view_alocacao`; para usuários comuns, configure os vínculos **Organização → Acessos de usuários a setores**. Sem vínculos, o quadro fica vazio. Veja [docs/quadro-semanal.md](docs/quadro-semanal.md).
 
-Esse escopo protege o quadro e o serviço de consulta. Os perfis e a extensão do escopo a todas as operações do Admin permanecem na issue #6.
+A issue #6 estende o escopo às listagens, detalhes, escolhas e gravações do Admin. Configure os grupos com `python manage.py configurar_perfis` após `migrate`; apenas o superusuário atribui contas/grupos/vínculos. Leia [docs/seguranca-piloto.md](docs/seguranca-piloto.md) para a matriz de perfis e a aceitação local obrigatória antes de encerrar a issue.
 
 ## 8. Segurança e limites do projeto
+
+Os perfis são Administrador (operação global), Coordenador, Líder e Consulta (setores vinculados). Consulta não grava. Administrador operacional não gerencia credenciais, grupos ou concessões: essa configuração é exclusiva do superusuário. Alocações exigem autorização tanto para o setor da tarefa quanto para o setor principal do trabalhador. Novas alterações de tarefa pelo Admin registram o ator no histórico.
+
+A validação local anterior do quadro foi confirmada pelo usuário. Os novos cenários de perfis e o ambiente real do piloto ainda precisam de aceitação conforme [docs/seguranca-piloto.md](docs/seguranca-piloto.md).
 
 - Não versionar senhas, chaves, tokens ou o arquivo `.env`.
 - Restringir o banco de desenvolvimento a `127.0.0.1`.
@@ -265,7 +269,7 @@ Esse escopo protege o quadro e o serviço de consulta. Os perfis e a extensão d
 Branch de referência para esta etapa:
 
 ```text
-feature/issue-005-quadro-semanal
+feature/issue-006-seguranca
 ```
 
 Antes de abrir um pull request:
@@ -287,7 +291,7 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 | #003 | Gestão de tarefas | Implementada no Admin; validação pelo CI |
 | #004 | Alocações diárias | Implementadas no Admin; validação pelo CI |
 | #005 | Visualização semanal | Implementada; validação pelo CI |
-| #006 | Permissões e validação do MVP | Planejada |
+| #006 | Permissões e validação do MVP | Implementação de autorização; aceitação manual do piloto pendente |
 
 *Numeração conferida nas issues do repositório. Consulte o GitHub para o estado atualizado.*
 

@@ -5,6 +5,7 @@ from django import forms
 from apps.organizacao.models import Funcao, Trabalhador
 from .models import Tarefa
 from .services import setores_permitidos, semana_de
+from apps.organizacao.autorizacao import filtrar_escopo
 
 
 class AlocacaoMultidiaForm(forms.Form):
@@ -22,6 +23,11 @@ class AlocacaoMultidiaForm(forms.Form):
         initial=[0, 1, 2, 3, 4], widget=forms.CheckboxSelectMultiple,
     )
     observacao = forms.CharField(label="Observação", required=False, widget=forms.Textarea)
+
+    def __init__(self, *args, ator=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        for campo in ("trabalhador", "tarefa"):
+            self.fields[campo].queryset = filtrar_escopo(ator, self.fields[campo].queryset)
 
     def clean(self):
         dados = super().clean()
