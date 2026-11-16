@@ -58,16 +58,18 @@ Preparar dois setores sintéticos A/B, um trabalhador e uma tarefa em cada, e co
 
 | Cenário | Resultado esperado | Evidência manual |
 | --- | --- | --- |
-| Líder abre listagem, filtros, detalhe e histórico de A | Consulta permitida | Pendente |
-| Líder tenta ID de tarefa/alocação de B e altera parâmetro de setor | Sem objeto/dados de B | Pendente |
-| Líder cria/edita tarefa e alocação de A | Permitido; autoria real | Pendente |
-| Líder envia IDs de tarefa/trabalhador de B pelo formulário e pelo multidiário | Rejeitado, sem lote parcial | Pendente |
-| Consulta tenta POST de criação/edição/exclusão | Acesso negado, sem mudança | Pendente |
-| Coordenador cadastra/inativa trabalhador de A e tenta transferir para B | A permitido; B rejeitado | Pendente |
-| Administrador operacional acessa A/B e tenta gerir usuário/grupo/vínculo | Operação global permitida; gestão de acesso negada | Pendente |
-| Quadro semanal, segunda–quinta e segunda tarefa na terça | Duas tarefas preservadas; setores respeitados | Pendente |
-| Dias fora do prazo, duplicata e tarefa encerrada | Erro de formulário, sem gravação parcial | Pendente |
-| Cookies, logout, sessão e CSRF no host real do piloto | Configuração conferida no navegador | Pendente |
+| Líder abre listagem, filtros, detalhe e histórico de A | Consulta permitida | Parcial: leitura/detalhe/histórico de A conferidos; sem varredura de filtros |
+| Líder tenta ID de tarefa/alocação de B e altera parâmetro de setor | Sem objeto/dados de B | Parcial: alocação B oculta e opções restritas; POST/parâmetros adulterados pendentes |
+| Líder cria/edita tarefa e alocação de A | Permitido; autoria real | Aprovado nos fluxos executados; autoria alex_dick |
+| Líder envia IDs de tarefa/trabalhador de B pelo formulário e pelo multidiário | Rejeitado, sem lote parcial | Pendente: POSTs adulterados não executados |
+| Consulta tenta POST de criação/edição/exclusão | Acesso negado, sem mudança | Parcial: somente leitura e GET de criação 403; POSTs pendentes |
+| Coordenador cadastra/inativa trabalhador de A e tenta transferir para B | A permitido; B rejeitado | Parcial: inativação/reativação aprovadas; criação e POST de transferência pendentes |
+| Administrador operacional acessa A/B e tenta gerir usuário/grupo/vínculo | Operação global permitida; gestão de acesso negada | Aprovado nos fluxos executados com qa_admin_oper |
+| Quadro semanal, segunda–quinta e segunda tarefa na terça | Duas tarefas preservadas; setores respeitados | Aprovado; duas tarefas na terça e navegação entre semanas |
+| Dias fora do prazo, duplicata e tarefa encerrada | Erro de formulário, sem gravação parcial | Aprovado; erros sem gravação parcial nos lotes testados |
+| Cookies, logout, sessão e CSRF no host real do piloto | Configuração conferida no navegador | Pendente no host real; logout local conferido |
+
+Evidências de 16/11/2026: [relatório de aceitação local](aceitacao-local-2026-11-16.md). O SHA do checkout local não foi confirmado; os setores existentes foram reutilizados com registros sintéticos. A execução é parcial e não autoriza fechar a issue.
 
 Registrar data, commit testado, papel utilizado e resultado (sem senhas ou dados reais). A suíte automatizada cobre os cenários de autorização, mas não substitui a aceitação manual pedida na issue.
 
