@@ -14,7 +14,7 @@ O exemplo `Pessoa Exemplo | Montagem/Soldagem | Eixo THC 95 | segunda a quinta` 
 - Inativar trabalhador ou encerrar tarefa preserva alocações já registradas. Essas operações não apagam nem redistribuem pessoas automaticamente.
 - Replanejar uma tarefa não pode deixar alocações fora de seu novo período. Primeiro corrija/remova os dias incompatíveis ou mantenha um período que os abranja.
 - Trabalhador, tarefa, função e autores usam `PROTECT`: os cadastros referenciados não podem ser apagados enquanto houver vínculos.
-- A função desempenhada é obrigatória; não existe vínculo obrigatório entre usuário do sistema e trabalhador. O setor principal do trabalhador pode ser diferente do setor da tarefa.
+- A função desempenhada é obrigatória; não existe vínculo obrigatório entre usuário do sistema e trabalhador. O setor principal do trabalhador pode ser diferente do setor da tarefa somente quando o usuário possui acesso aos dois setores (política da issue #6).
 
 ## Autoria e autorização
 
@@ -22,7 +22,7 @@ O exemplo `Pessoa Exemplo | Montagem/Soldagem | Eixo THC 95 | segunda a quinta` 
 
 Criação, edição e remoção pelo modelo exigem `save(ator=usuario)` ou `delete(ator=usuario)`. O ator precisa estar autenticado e ativo e ter, respectivamente, `add_alocacao`, `change_alocacao` ou `delete_alocacao`. A consulta por serviço exige `view_alocacao`. O Admin exige adicionalmente acesso staff, como de costume.
 
-A issue #4 usa permissões globais nativas do Django nas gravações. A issue #5 acrescenta escopo por vínculo `UsuarioSetor` ao quadro semanal e ao serviço de consulta (veja [quadro-semanal.md](quadro-semanal.md)). A extensão do escopo a todas as operações do Admin e os perfis continuam na issue #6; esta etapa não autoriza um piloto com segregação por setor.
+A issue #4 usa permissões globais nativas do Django nas gravações. A issue #5 acrescenta escopo por vínculo `UsuarioSetor` ao quadro semanal e ao serviço de consulta (veja [quadro-semanal.md](quadro-semanal.md)). A issue #6 estende a política ao Admin e aos serviços de gravação; veja [seguranca-piloto.md](seguranca-piloto.md). Alocar entre setores exige ambos autorizados. A aceitação manual do piloto permanece separada.
 
 ## Operação com vários dias
 

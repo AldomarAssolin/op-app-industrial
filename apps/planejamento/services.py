@@ -6,6 +6,7 @@ from django.db import transaction
 
 from .models import Alocacao, exigir_permissao
 from apps.organizacao.models import Setor
+from apps.organizacao.autorizacao import setores_do_usuario, filtrar_escopo
 
 
 @transaction.atomic
@@ -35,7 +36,7 @@ def consultar_alocacoes(*, ator, inicio, fim, setor_id=None):
         "criado_por", "alterado_por",
     ).filter(data__range=(inicio, fim))
     permitidos = setores_permitidos(ator)
-    consulta = consulta.filter(tarefa__setor__in=permitidos)
+    consulta = filtrar_escopo(ator, consulta)
     if setor_id is not None:
         if not permitidos.filter(pk=setor_id).exists():
             raise PermissionDenied("Setor não autorizado para consulta.")
@@ -45,10 +46,7 @@ def consultar_alocacoes(*, ator, inicio, fim, setor_id=None):
 
 def setores_permitidos(ator):
     exigir_permissao(ator, "view")
-    setores = Setor.objects.all()
-    if not ator.is_superuser:
-        setores = setores.filter(acessos_usuarios__usuario=ator)
-    return setores
+    return setores_do_usuario(ator)
 
 
 def semana_de(dia):

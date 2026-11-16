@@ -39,6 +39,7 @@ jobs:
         run: |
           python manage.py check
           python manage.py migrate --noinput
+          python manage.py configurar_perfis
           python manage.py makemigrations --check --dry-run
           python manage.py migrate --check
           python manage.py test -v 2 --noinput

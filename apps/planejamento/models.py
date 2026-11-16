@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
 from django.db.models import F, Q
 
+from apps.organizacao.autorizacao import exigir_operacao, exigir_escopo_objeto
+
 
 class Tarefa(models.Model):
     class Status(models.TextChoices):
@@ -88,7 +90,7 @@ class Tarefa(models.Model):
                     "fim_previsto": "O período deve abranger todas as alocações existentes. Corrija os dias antes de reduzir o prazo."
                 })
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, ator=None, **kwargs):
         update_fields = kwargs.get("update_fields")
         if update_fields is not None and not update_fields:
             return
@@ -105,13 +107,18 @@ class Tarefa(models.Model):
                         if (not campo.primary_key and campo.name not in update_fields
                                 and campo.attname not in update_fields):
                             setattr(self, campo.attname, getattr(anterior, campo.attname))
+            if ator is not None:
+                exigir_operacao(ator, "planejamento.change_tarefa" if anterior else "planejamento.add_tarefa")
+                exigir_escopo_objeto(ator, self)
+                if anterior is not None:
+                    exigir_escopo_objeto(ator, anterior)
             self.full_clean()
             super().save(*args, **kwargs)
             if anterior is None or any(
                 getattr(self, campo) != getattr(anterior, campo) for campo in self.CAMPOS_HISTORICO
             ):
                 HistoricoTarefa.objects.using(using).create(
-                    tarefa=self, **{campo: getattr(self, campo) for campo in self.CAMPOS_HISTORICO}
+                    tarefa=self, registrado_por=ator, **{campo: getattr(self, campo) for campo in self.CAMPOS_HISTORICO}
                 )
 
 
@@ -120,6 +127,8 @@ class HistoricoTarefa(models.Model):
 
     tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name="historico")
     registrado_em = models.DateTimeField("registrado em", auto_now_add=True)
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+        editable=False, on_delete=models.PROTECT, related_name="historico_tarefas", verbose_name="registrado por")
     status = models.CharField(max_length=20, choices=Tarefa.Status.choices)
     inicio_previsto = models.DateField("início previsto")
     fim_previsto = models.DateField("conclusão prevista")
@@ -133,9 +142,7 @@ class HistoricoTarefa(models.Model):
 
 
 def exigir_permissao(ator, operacao):
-    if (ator is None or not ator.is_authenticated or not ator.is_active
-            or not ator.has_perm(f"planejamento.{operacao}_alocacao")):
-        raise PermissionDenied("Usuário sem permissão para esta operação de alocação.")
+    exigir_operacao(ator, f"planejamento.{operacao}_alocacao")
 
 
 class Alocacao(models.Model):
@@ -216,6 +223,9 @@ class Alocacao(models.Model):
             else:
                 exigir_permissao(ator, "add")
                 self.criado_por = ator
+            exigir_escopo_objeto(ator, self)
+            if anterior:
+                exigir_escopo_objeto(ator, anterior)
             self.alterado_por = ator
             self.full_clean()
             if update_fields is not None:
@@ -224,4 +234,7 @@ class Alocacao(models.Model):
 
     def delete(self, *args, ator=None, **kwargs):
         exigir_permissao(ator, "delete")
-        return super().delete(*args, **kwargs)
+        with transaction.atomic():
+            atual = type(self).objects.select_for_update().get(pk=self.pk)
+            exigir_escopo_objeto(ator, atual)
+            return super().delete(*args, **kwargs)

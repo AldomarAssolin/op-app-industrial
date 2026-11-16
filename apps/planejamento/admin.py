@@ -8,12 +8,14 @@ from django.urls import path, reverse
 from .forms import AlocacaoMultidiaForm
 from .models import Alocacao, HistoricoTarefa, Tarefa, exigir_permissao
 from .services import alocar_dias
+from apps.organizacao.admin_escopo import EscopoAdminMixin
+from apps.organizacao.autorizacao import filtrar_escopo, exigir_escopo_objeto
 
 
-class HistoricoTarefaInline(admin.TabularInline):
+class HistoricoTarefaInline(EscopoAdminMixin, admin.TabularInline):
     model = HistoricoTarefa
     extra = 0
-    fields = ("registrado_em", "status", "inicio_previsto", "fim_previsto", "setor")
+    fields = ("registrado_em", "registrado_por", "status", "inicio_previsto", "fim_previsto", "setor")
     readonly_fields = fields
     can_delete = False
 
@@ -28,15 +30,18 @@ class HistoricoTarefaInline(admin.TabularInline):
 
 
 @admin.register(Tarefa)
-class TarefaAdmin(admin.ModelAdmin):
+class TarefaAdmin(EscopoAdminMixin, admin.ModelAdmin):
     list_display = ("id", "titulo", "setor", "inicio_previsto", "fim_previsto", "status")
     list_display_links = ("id", "titulo")
-    list_filter = ("setor", "status", "inicio_previsto", "fim_previsto")
+    list_filter = (("setor", admin.RelatedOnlyFieldListFilter), "status", "inicio_previsto", "fim_previsto")
     search_fields = ("titulo", "descricao", "observacoes", "setor__nome")
     list_select_related = ("setor",)
     inlines = (HistoricoTarefaInline,)
     fields = ("titulo", "descricao", "setor", ("inicio_previsto", "fim_previsto"),
               "status", "observacoes")
+
+    def save_model(self, request, obj, form, change):
+        obj.save(ator=request.user)
 
     def has_delete_permission(self, request, obj=None):
         # Use cancelamento; toda tarefa criada já possui histórico protegido.
@@ -44,9 +49,10 @@ class TarefaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Alocacao)
-class AlocacaoAdmin(admin.ModelAdmin):
+class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     list_display = ("id", "data", "trabalhador", "tarefa", "funcao_desempenhada", "alterado_por")
-    list_filter = ("data", "tarefa__setor", "funcao_desempenhada")
+    list_filter = ("data", ("tarefa__setor", admin.RelatedOnlyFieldListFilter),
+                   ("funcao_desempenhada", admin.RelatedOnlyFieldListFilter))
     search_fields = ("trabalhador__nome", "tarefa__titulo", "observacao")
     list_select_related = ("trabalhador", "tarefa", "funcao_desempenhada", "alterado_por")
     readonly_fields = ("criado_por", "alterado_por", "criado_em", "alterado_em")
@@ -86,7 +92,7 @@ class AlocacaoAdmin(admin.ModelAdmin):
 
     def alocar_varios_dias(self, request):
         exigir_permissao(request.user, "add")
-        form = AlocacaoMultidiaForm(request.POST or None)
+        form = AlocacaoMultidiaForm(request.POST or None, ator=request.user)
         if request.method == "POST" and form.is_valid():
             dados = form.cleaned_data
             try:
@@ -115,4 +121,7 @@ class AlocacaoAdmin(admin.ModelAdmin):
 
     def delete_queryset(self, request, queryset):
         exigir_permissao(request.user, "delete")
+        queryset = filtrar_escopo(request.user, queryset)
+        for obj in queryset:
+            exigir_escopo_objeto(request.user, obj)
         queryset.delete()
