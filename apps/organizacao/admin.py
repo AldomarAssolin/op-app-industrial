@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import Group
 
 from .admin_escopo import EscopoAdminMixin
-from .autorizacao import administrador
+from .autorizacao import administrador, LIDER, COORDENADOR
 
 from .models import Funcao, Setor, Trabalhador, UsuarioSetor
 
@@ -19,6 +19,17 @@ class CadastroAdmin(admin.ModelAdmin):
 
 @admin.register(Setor)
 class SetorAdmin(EscopoAdminMixin, CadastroAdmin):
+    def _lider_restrito(self, request):
+        return (not administrador(request.user)
+                and request.user.groups.filter(name=LIDER).exists()
+                and not request.user.groups.filter(name=COORDENADOR).exists())
+
+    def has_module_permission(self, request):
+        return not self._lider_restrito(request) and super().has_module_permission(request)
+
+    def has_view_permission(self, request, obj=None):
+        return not self._lider_restrito(request) and super().has_view_permission(request, obj)
+
     def has_add_permission(self, request):
         return administrador(request.user) and super().has_add_permission(request)
 
@@ -31,7 +42,9 @@ class SetorAdmin(EscopoAdminMixin, CadastroAdmin):
 
 @admin.register(Funcao)
 class FuncaoAdmin(SetorAdmin):
-    pass
+    # Funções continuam disponíveis para consulta do Líder; só Setores é ocultado.
+    def _lider_restrito(self, request):
+        return False
 
 
 @admin.register(Trabalhador)

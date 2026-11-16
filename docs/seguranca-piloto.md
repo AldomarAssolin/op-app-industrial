@@ -10,6 +10,8 @@
 | Consulta | Setores vinculados | Nenhuma |
 | Superusuário de configuração | Todos | Também usuários, grupos e vínculos UsuarioSetor |
 
+O menu do Líder contém apenas Funções, Trabalhadores, Tarefas e Alocações diárias. Setores não ficam acessíveis para esse perfil, nem por URL direta ou popup, mesmo com permissões individuais de setor concedidas por engano. A escolha do setor autorizado dentro da tarefa continua disponível. Coordenador conserva sua consulta de setores; criar/editar/excluir setores segue exclusivo do Administrador/superusuário.
+
 Funções profissionais não são grupos de autorização. Um trabalhador não exige conta. O perfil Administrador é operacional: não recebe gestão de usuários/grupos nem concessão de setores. Essas telas exigem superusuário, inclusive se uma permissão individual for concedida por engano.
 
 Grupos concedem operações; UsuarioSetor delimita dados para os perfis restritos. Administrador e superusuário têm escopo global. Sem vínculo, os demais perfis não veem registros setoriais. Funções profissionais formam um catálogo global de leitura; só Administrador/superusuário o altera. O sistema admite múltiplos grupos e prevalece a união dos perfis elevados; não combine Consulta com um perfil de escrita se deseja acesso somente leitura. Consulta sozinho continua bloqueado para escrita mesmo com permissão individual extra.
@@ -72,3 +74,7 @@ Registrar data, commit testado, papel utilizado e resultado (sem senhas ou dados
 ## Critério de fechamento
 
 Código e CI/revisão aprovados são uma parte da entrega. Manter a issue #6 aberta até aprovação dos cenários manuais acima e registro da configuração do piloto. Nenhum ambiente empresarial ou integração externa é implantado por esta alteração.
+
+## Diagnóstico da conta usada na validação
+
+Para testar Líder, usar uma conta com apenas o grupo Líder, ativa e staff, sem flag de superusuário e sem grupo Administrador. Superusuário e associação a Administrador continuam concedendo poderes administrativos por definição; o rótulo ou nome de usuário “líder” não limita esses poderes. Atualizar o repositório, executar configurar_perfis, reiniciar o servidor e sair/entrar com a conta correta antes de repetir a validação. O comando sincroniza grupos, mas não remove grupos extras nem altera is_superuser de contas existentes.

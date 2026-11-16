@@ -19,8 +19,10 @@ class Command(BaseCommand):
         perfis = {}
         perfis["Consulta"] = copy.deepcopy(LEITURA)
         perfis["Líder"] = copy.deepcopy(LEITURA)
+        perfis["Líder"]["organizacao"].pop("setor")
         perfis["Líder"]["planejamento"].update(tarefa="view add change", alocacao="view add change delete")
         perfis["Coordenador"] = copy.deepcopy(perfis["Líder"])
+        perfis["Coordenador"]["organizacao"]["setor"] = "view"
         perfis["Coordenador"]["organizacao"]["trabalhador"] = "view add change"
         perfis["Administrador"] = copy.deepcopy(perfis["Coordenador"])
         for modelo in ("setor", "funcao", "trabalhador"):
