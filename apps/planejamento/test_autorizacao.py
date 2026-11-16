@@ -92,7 +92,7 @@ class AutorizacaoTests(TestCase):
 
     def test_listagens_buscas_e_filtros_nao_expoem_outro_setor(self):
         self.entrar()
-        for nome in ("planejamento_tarefa", "planejamento_alocacao", "organizacao_trabalhador", "organizacao_setor"):
+        for nome in ("planejamento_tarefa", "planejamento_alocacao", "organizacao_trabalhador"):
             resposta = self.client.get(reverse(f"admin:{nome}_changelist"))
             self.assertEqual(resposta.status_code, 200)
             for texto in ("Pessoa reservada", "Atividade reservada", "Setor reservado"):
@@ -245,3 +245,48 @@ class AutorizacaoTests(TestCase):
         cliente.force_login(self.lider)
         self.assertEqual(cliente.post(reverse("admin:planejamento_alocacao_add"),
                                      self.dados_alocacao()).status_code, 403)
+
+    def test_lider_nao_acessa_setores_mesmo_com_permissoes_extras(self):
+        self.lider.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label="organizacao", codename__in=[
+                "view_setor", "add_setor", "change_setor", "delete_setor",
+            ]))
+        self.entrar()
+        for url in (
+            reverse("admin:organizacao_setor_changelist"),
+            reverse("admin:organizacao_setor_add"),
+            reverse("admin:organizacao_setor_change", args=[self.setor.pk]),
+            reverse("admin:organizacao_setor_delete", args=[self.setor.pk]),
+            reverse("admin:organizacao_setor_add") + "?_popup=1",
+        ):
+            self.assertEqual(self.client.get(url).status_code, 403)
+            self.assertEqual(self.client.post(url, {"nome": "Setor indevido", "ativo": "on", "post": "yes"}).status_code, 403)
+        self.assertFalse(Setor.objects.filter(nome="Setor indevido").exists())
+
+    def test_menu_lider_so_mostra_modulos_operacionais_permitidos(self):
+        self.entrar()
+        resposta = self.client.get(reverse("admin:index"))
+        self.assertNotContains(resposta, reverse("admin:organizacao_setor_changelist"))
+        for nome in ("organizacao_funcao", "organizacao_trabalhador", "planejamento_alocacao", "planejamento_tarefa"):
+            self.assertContains(resposta, reverse(f"admin:{nome}_changelist"))
+        self.assertNotContains(resposta, reverse("admin:organizacao_usuariosetor_changelist"))
+        self.assertNotContains(resposta, reverse("admin:auth_user_changelist"))
+
+    def test_lider_continua_selecionando_apenas_setor_autorizado_na_tarefa(self):
+        self.entrar()
+        resposta = self.client.get(reverse("admin:planejamento_tarefa_add"))
+        self.assertContains(resposta, "Setor permitido")
+        self.assertNotContains(resposta, "Setor reservado")
+        self.assertNotContains(resposta, reverse("admin:organizacao_setor_add"))
+
+    def test_coordenador_preserva_consulta_de_setores_sem_criacao(self):
+        self.entrar(self.coordenador)
+        self.assertEqual(self.client.get(reverse("admin:organizacao_setor_changelist")).status_code, 200)
+        self.assertEqual(self.client.post(reverse("admin:organizacao_setor_add"),
+            {"nome": "Novo setor", "ativo": "on"}).status_code, 403)
+
+    def test_administrador_continua_cadastrando_setores(self):
+        self.entrar(self.administrador)
+        self.assertEqual(self.client.post(reverse("admin:organizacao_setor_add"),
+            {"nome": "Novo setor", "ativo": "on"}).status_code, 302)
+        self.assertTrue(Setor.objects.filter(nome="Novo setor").exists())
