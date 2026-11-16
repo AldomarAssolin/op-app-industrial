@@ -4,6 +4,7 @@ from django import forms
 
 from apps.organizacao.models import Funcao, Trabalhador
 from .models import Tarefa
+from .services import setores_permitidos, semana_de
 
 
 class AlocacaoMultidiaForm(forms.Form):
@@ -38,3 +39,20 @@ class AlocacaoMultidiaForm(forms.Form):
                     self.add_error("dias_semana", "Nenhum dia selecionado pertence ao período.")
                 dados["datas"] = datas
         return dados
+
+
+class QuadroSemanalForm(forms.Form):
+    semana = forms.DateField(label="Data da semana", widget=forms.DateInput(attrs={"type": "date"}))
+    setor = forms.ModelChoiceField(label="Setor", queryset=None, required=False,
+                                  empty_label="Todos os setores permitidos",
+                                  error_messages={"invalid_choice": "Selecione um setor permitido."})
+    fim_semana = forms.BooleanField(label="Mostrar sábado e domingo", required=False)
+
+    def __init__(self, *args, ator, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["setor"].queryset = setores_permitidos(ator)
+
+    def clean_semana(self):
+        dia = self.cleaned_data["semana"]
+        semana_de(dia)
+        return dia

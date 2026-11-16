@@ -1,6 +1,7 @@
 {% extends "admin/change_list.html" %}
 {% load admin_urls %}
 {% block object-tools-items %}
+  <li><a href="{% url 'planejamento:quadro_semanal' %}">Quadro semanal</a></li>
   {% if has_add_permission %}
     <li><a href="{% url 'admin:planejamento_alocacao_varios_dias' %}">Alocar vários dias</a></li>
   {% endif %}

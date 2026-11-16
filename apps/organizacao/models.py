@@ -1,5 +1,6 @@
 import unicodedata
 
+from django.conf import settings
 from django.db import models
 from django.db.models.functions import Lower
 
@@ -73,3 +74,19 @@ class Trabalhador(CadastroNomeado):
     def __str__(self):
         # Nomes homônimos são permitidos. O ID diferencia as opções no Admin.
         return f"{self.nome} (ID {self.pk})" if self.pk else self.nome
+
+
+class UsuarioSetor(models.Model):
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                related_name="setores_permitidos", verbose_name="usuário")
+    setor = models.ForeignKey(Setor, on_delete=models.CASCADE,
+                              related_name="acessos_usuarios", verbose_name="setor")
+
+    class Meta:
+        verbose_name = "acesso de usuário a setor"
+        verbose_name_plural = "acessos de usuários a setores"
+        constraints = [models.UniqueConstraint(fields=("usuario", "setor"),
+                                               name="organizacao_usuario_setor_unico")]
+
+    def __str__(self):
+        return f"{self.usuario} | {self.setor}"
