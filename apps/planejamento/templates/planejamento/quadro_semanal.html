@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quadro semanal | OP-APP</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #182d3c; background: #f3f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #142f40; color: white; padding: 20px max(24px, calc((100vw - 1400px)/2)); }
+    header p { margin: 4px 0 0; color: #c6dce8; font-size: .9rem; }
+    main { max-width: 1448px; margin: auto; padding: 28px 24px; }
+    h1 { font-size: 1.65rem; margin: 0 0 8px; }
+    a { color: #125d89; text-underline-offset: 3px; }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #cf7800; outline-offset: 3px; }
+    .intro { color: #4f6473; margin: 0 0 24px; }
+    .filters { background: white; border: 1px solid #cfdae2; border-radius: 8px; padding: 16px 20px; margin: 22px 0; }
+    form { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; }
+    form p { margin: 0; }
+    label { display: block; font-size: .9rem; margin-bottom: 6px; font-weight: 600; }
+    input, select, button { font: inherit; padding: 9px 12px; border: 1px solid #8ba3b4; border-radius: 5px; max-width: 100%; }
+    button { cursor: pointer; background: #165e85; color: white; border-color: #165e85; }
+    .errorlist { color: #9a1b25; padding-left: 20px; }
+    .navigation { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-bottom: 18px; }
+    .navigation strong { flex: 1; }
+    .navigation button { background: white; color: #125d89; }
+    .table-wrap { overflow-x: auto; border: 1px solid #c5d2db; border-radius: 8px; background: white; }
+    table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: .9rem; }
+    caption { text-align: left; padding: 16px; font-weight: 600; background: #edf3f7; }
+    th, td { border: 1px solid #d5dfe6; padding: 12px 10px; text-align: left; vertical-align: top; }
+    thead th { background: #f5f8fa; }
+    tbody th { font-weight: 600; min-width: 150px; }
+    td.day { min-width: 98px; text-align: center; }
+    small { display: block; font-weight: 400; color: #526675; margin-top: 5px; overflow-wrap: anywhere; }
+    .allocated { background: #edf7f3; }
+    .mark { color: #17593f; font-weight: 600; }
+    .empty { background: white; border: 1px dashed #9fb2c1; padding: 32px; border-radius: 8px; }
+    .note { color: #4f6473; font-size: .9rem; }
+    .weekend { color: #815008; }
+    @media (max-width: 600px) { main { padding: 20px 12px; } form { display: block; } form p { margin-bottom: 14px; } }
+    @page { size: landscape; margin: 12mm; }
+    @media print {
+      :root { background: white; color: black; font-size: 10pt; }
+      header { color: black; background: white; padding: 0; border-bottom: 1px solid black; }
+      header p, .filters, .navigation, .admin-link { display: none; }
+      main { padding: 16px 0; max-width: none; }
+      .table-wrap { overflow: visible; border: 0; }
+      table { min-width: 0; font-size: 8pt; table-layout: fixed; }
+      th, td { padding: 6px; overflow-wrap: anywhere; }
+      tbody th, td.day { min-width: 0; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+      .mark, small { color: black; }
+    }
+  </style>
+</head>
+<body>
+  <header><strong>OP-APP</strong><p>Planejamento operacional industrial</p></header>
+  <main>
+    <h1>Quadro semanal</h1>
+    <p class="intro">Trabalhadores, funções e tarefas organizados por dia.</p>
+    {% if request.user.is_staff %}<a class="admin-link" href="{% url 'admin:planejamento_alocacao_changelist' %}">Abrir alocações no Admin</a>{% endif %}
+    <section class="filters" aria-label="Filtros do quadro">
+      <form method="get">{{ form.as_p }}<button type="submit">Consultar semana</button></form>
+    </section>
+    {% if inicio %}
+      <nav class="navigation" aria-label="Navegação entre semanas">
+        {% if url_anterior %}<a href="{{ url_anterior }}">← Semana anterior</a>{% endif %}
+        <strong>{{ inicio|date:"d/m/Y" }} a {{ fim|date:"d/m/Y" }}</strong>
+        {% if url_proxima %}<a href="{{ url_proxima }}">Próxima semana →</a>{% endif %}
+        <button type="button" onclick="window.print()">Imprimir</button>
+      </nav>
+      {% if mostrar_fim_semana %}<p class="note weekend">Sábado e domingo incluídos por seleção ou por haver alocações nesses dias.</p>{% endif %}
+      {% if linhas %}
+        <div class="table-wrap" role="region" aria-label="Planejamento por trabalhador e dia" tabindex="0">
+          <table>
+            <caption>Alocações de {{ inicio|date:"d/m/Y" }} a {{ fim|date:"d/m/Y" }}</caption>
+            <thead><tr><th scope="col">Trabalhador</th><th scope="col">Função desempenhada</th><th scope="col">Tarefa / setor</th>
+              {% for coluna in colunas %}<th scope="col">{{ coluna.nome }}<small>{{ coluna.data|date:"d/m" }}</small></th>{% endfor %}
+            </tr></thead>
+            <tbody>{% for linha in linhas %}<tr>
+              <th scope="row">{{ linha.trabalhador.nome }}<small>ID {{ linha.trabalhador.pk }}</small></th>
+              <td>{{ linha.funcao.nome }}</td>
+              <td>{{ linha.tarefa.titulo }}<small>{{ linha.tarefa.setor.nome }} · {{ linha.tarefa.get_status_display }}</small>
+                <small>Previsto: {{ linha.tarefa.inicio_previsto|date:"d/m/Y" }} a {{ linha.tarefa.fim_previsto|date:"d/m/Y" }}</small></td>
+              {% for celula in linha.celulas %}<td class="day{% if celula.alocacao %} allocated{% endif %}">
+                {% if celula.alocacao %}<span class="mark">Alocado</span>{% if celula.alocacao.observacao %}<small>{{ celula.alocacao.observacao }}</small>{% endif %}
+                {% else %}<span aria-label="Sem alocação">—</span>{% endif %}
+              </td>{% endfor %}
+            </tr>{% endfor %}</tbody>
+          </table>
+        </div>
+      {% else %}<div class="empty"><strong>Nenhuma alocação nesta semana.</strong><p>Não há registros para a semana e os setores permitidos selecionados.</p></div>{% endif %}
+      <p class="note">Cada linha reúne trabalhador, função desempenhada e tarefa. Dias vazios não indicam disponibilidade. Alocação não representa jornada exclusiva nem contabiliza horas.</p>
+    {% endif %}
+  </main>
+</body>
+</html>

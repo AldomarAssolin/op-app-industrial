@@ -22,7 +22,7 @@ O exemplo `Pessoa Exemplo | Montagem/Soldagem | Eixo THC 95 | segunda a quinta` 
 
 Criação, edição e remoção pelo modelo exigem `save(ator=usuario)` ou `delete(ator=usuario)`. O ator precisa estar autenticado e ativo e ter, respectivamente, `add_alocacao`, `change_alocacao` ou `delete_alocacao`. A consulta por serviço exige `view_alocacao`. O Admin exige adicionalmente acesso staff, como de costume.
 
-Nesta entrega são usadas permissões globais nativas do Django. O filtro de setor é de consulta, não uma barreira de autorização. Perfis e restrições por setor continuam na issue #6; esta etapa não autoriza um piloto com segregação por setor.
+A issue #4 usa permissões globais nativas do Django nas gravações. A issue #5 acrescenta escopo por vínculo `UsuarioSetor` ao quadro semanal e ao serviço de consulta (veja [quadro-semanal.md](quadro-semanal.md)). A extensão do escopo a todas as operações do Admin e os perfis continuam na issue #6; esta etapa não autoriza um piloto com segregação por setor.
 
 ## Operação com vários dias
 
@@ -79,4 +79,4 @@ python manage.py test -v 2 --noinput
 
 Os testes exercitam seleção multidiária, duas tarefas no mesmo dia, correção/remoção isolada, limite de período, duplicidade na aplicação e no banco, rollback, autoria, permissões, consulta sem N+1, formulários do Admin e concorrência real no PostgreSQL.
 
-Fora do escopo: quadro semanal (issue #5), turnos, horários, horas-pessoa, controle de capacidade e equipes fixas. Nenhuma integração com o GTH Agents é criada.
+O quadro semanal foi acrescentado na [issue #5](quadro-semanal.md). Turnos, horários, horas-pessoa, controle de capacidade e equipes fixas permanecem fora do escopo. Nenhuma integração com o GTH Agents é criada.

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Funcao, Setor, Trabalhador
+from .models import Funcao, Setor, Trabalhador, UsuarioSetor
 
 
 class CadastroAdmin(admin.ModelAdmin):
@@ -27,3 +27,11 @@ class TrabalhadorAdmin(CadastroAdmin):
     search_fields = ("nome", "setor_principal__nome", "funcao_principal__nome")
     list_filter = ("ativo", "setor_principal", "funcao_principal")
     list_select_related = ("setor_principal", "funcao_principal")
+
+
+@admin.register(UsuarioSetor)
+class UsuarioSetorAdmin(admin.ModelAdmin):
+    list_display = ("usuario", "setor")
+    list_filter = ("setor",)
+    search_fields = ("usuario__username", "setor__nome")
+    list_select_related = ("usuario", "setor")

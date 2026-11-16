@@ -2,7 +2,7 @@
 
 Sistema independente para **planejamento e distribuição diária de trabalhadores em tarefas industriais**, com consulta consolidada por semana. O projeto busca evoluir o planejamento hoje realizado em planilhas, preservando a simplicidade do processo operacional.
 
-> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os cadastros organizacionais da issue #2 estão implementados no Django Admin. As tarefas da issue #3 possuem cadastro e ciclo de vida no Admin. Alocações diárias da issue #4 permitem distribuir trabalhadores em vários dias, com autoria e validação. A visualização semanal continua planejada.
+> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os cadastros organizacionais da issue #2 estão implementados no Django Admin. As tarefas da issue #3 possuem cadastro e ciclo de vida no Admin. Alocações diárias da issue #4 permitem distribuir trabalhadores em vários dias, com autoria e validação. O quadro semanal da issue #5 consulta essas alocações com escopo por setor autorizado.
 
 ## 1. Objetivo e contexto
 
@@ -35,7 +35,7 @@ O OP-APP é **independente do GTH Agents**: possui repositório, banco de dados,
 | --- | --- |
 | Organização | Cadastro de setores, funções e trabalhadores no Admin (issue #2) |
 | Planejamento | Tarefas/histórico (issue #3) e alocações diárias com seleção multidiária (issue #4) no Admin |
-| Consulta semanal | Exibição de alocações por trabalhador, tarefa e dia, com filtros por semana e setor |
+| Consulta semanal | Quadro em `/planejamento/semanal/` com semana, setor autorizado, navegação e impressão (issue #5) |
 | Autorização operacional | Restrições de acesso por papel e setor |
 
 **Fora do MVP inicial:** controle de horas e produtividade, manutenção, cadastro técnico de equipamentos, ordens de produção completas, React, API pública e integração com o GTH Agents.
@@ -83,6 +83,7 @@ op-app-industrial/
 ├── docs/organizacao.md
 ├── docs/tarefas.md
 ├── docs/alocacoes.md
+├── docs/quadro-semanal.md
 ├── .env.example
 ├── .gitignore
 ├── compose.yaml
@@ -212,7 +213,7 @@ python manage.py migrate --check
 
 **Banco de testes:** testes que usam `TestCase` criam e descartam um banco separado (habitualmente `test_op_app_dev`). O usuário de PostgreSQL precisa ter permissão para criar o banco de testes. **Nunca configure esses testes para utilizar o banco de produção.**
 
-> A base da issue #1 contém 9 testes: 4 de registro dos apps e 5 de banco/autenticação/Admin. As issues #2, #3 e #4 acrescentam testes de modelos e fluxos do Admin; rode a suíte completa para validar o total atual. A issue #1 registra uma execução local anterior aprovada. Resultados da revisão atual e suas limitações estão em [docs/issue-001-validacao.md](docs/issue-001-validacao.md).
+> A base da issue #1 contém 9 testes: 4 de registro dos apps e 5 de banco/autenticação/Admin. As issues #2 a #5 acrescentam testes de modelos e fluxos do Admin; rode a suíte completa para validar o total atual. A issue #1 registra uma execução local anterior aprovada. Resultados da revisão atual e suas limitações estão em [docs/issue-001-validacao.md](docs/issue-001-validacao.md).
 
 O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, valida o Compose real do projeto, inicia PostgreSQL 17, aplica e confere migrações e roda a suíte em Python 3.12. Os valores de ambiente do CI são descartáveis e não usam credenciais locais. O `down -v` do workflow remove apenas o banco descartável do runner; não é uma instrução de limpeza para seu banco local.
 
@@ -227,7 +228,7 @@ O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, 
 - Equipes serão dinâmicas, formadas pelas alocações, sem cadastro de equipes fixas no MVP.
 - Função profissional e perfil de acesso serão conceitos distintos.
 
-As regras de tarefas e alocações diárias estão implementadas; o quadro semanal permanece para a próxima issue. Os cadastros organizacionais já estão implementados; consulte [docs/organizacao.md](docs/organizacao.md) para normalização, homônimos, inativação, exclusão protegida e uso no Admin.
+As regras de tarefas e alocações diárias estão implementadas; o quadro semanal consulta os registros existentes sem tabela própria de semana. Os cadastros organizacionais já estão implementados; consulte [docs/organizacao.md](docs/organizacao.md) para normalização, homônimos, inativação, exclusão protegida e uso no Admin.
 
 ### Cadastros organizacionais no Admin
 
@@ -242,6 +243,12 @@ Em **Planejamento operacional → Tarefas**, cadastre título, setor e período 
 ### Alocações diárias
 
 Em **Planejamento operacional → Alocações diárias**, cadastre ou corrija um dia; use **Alocar vários dias** para escolher um período e dias da semana. A mesma pessoa pode participar de tarefas diferentes no mesmo dia. A combinação trabalhador/tarefa/data não se repete, os dias devem estar no prazo e trabalhador inativo ou tarefa encerrada bloqueiam a gravação. O lote é atômico e a autoria vem do usuário autenticado. Alocação não representa jornada exclusiva nem contabiliza horas. Veja [docs/alocacoes.md](docs/alocacoes.md).
+
+### Quadro semanal
+
+Abra `/planejamento/semanal/` ou o link **Quadro semanal** na listagem de alocações. Selecione uma data da semana e um setor autorizado; os links anterior/próxima preservam os filtros. Duas tarefas no mesmo dia aparecem em linhas diferentes. Sábado/domingo são incluídos quando selecionados ou quando há alocações nesses dias. A tela oferece estilo de impressão e exige `view_alocacao`; para usuários comuns, configure os vínculos **Organização → Acessos de usuários a setores**. Sem vínculos, o quadro fica vazio. Veja [docs/quadro-semanal.md](docs/quadro-semanal.md).
+
+Esse escopo protege o quadro e o serviço de consulta. Os perfis e a extensão do escopo a todas as operações do Admin permanecem na issue #6.
 
 ## 8. Segurança e limites do projeto
 
@@ -258,7 +265,7 @@ Em **Planejamento operacional → Alocações diárias**, cadastre ou corrija um
 Branch de referência para esta etapa:
 
 ```text
-feature/issue-004-alocacoes
+feature/issue-005-quadro-semanal
 ```
 
 Antes de abrir um pull request:
@@ -279,7 +286,7 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 | #002 | Cadastros de setores, funções e trabalhadores | Implementados no Admin; validação pelo CI |
 | #003 | Gestão de tarefas | Implementada no Admin; validação pelo CI |
 | #004 | Alocações diárias | Implementadas no Admin; validação pelo CI |
-| #005 | Visualização semanal | Planejada |
+| #005 | Visualização semanal | Implementada; validação pelo CI |
 | #006 | Permissões e validação do MVP | Planejada |
 
 *Numeração conferida nas issues do repositório. Consulte o GitHub para o estado atualizado.*
