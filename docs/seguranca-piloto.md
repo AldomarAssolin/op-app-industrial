@@ -77,6 +77,12 @@ Registrar data, commit testado, papel utilizado e resultado (sem senhas ou dados
 
 Código e CI/revisão aprovados são uma parte da entrega. Manter a issue #6 aberta até aprovação dos cenários manuais acima e registro da configuração do piloto. Nenhum ambiente empresarial ou integração externa é implantado por esta alteração.
 
+### Complemento de 17/11/2026
+
+Manex definiu uso somente local por enquanto. A [validação HTTP complementar](aceitacao-local-2026-11-17.md) registra 118 testes aprovados e cobre POSTs adulterados, Consulta sem escrita, cadastro/transferência pelo Coordenador, CSRF, cookies, logout e exclusão em servidor HTTP real. É evidência automatizada complementar: a coluna manual de 16/11 acima preserva o resultado histórico daquela execução.
+
+O aceite por evidências combinadas (navegador de 16/11 + HTTP de 17/11), em lugar da repetição manual integral, aguarda decisão de Manex. HTTPS, configuração do host e recuperação do banco efetivo ficam na [issue #16](https://github.com/AldomarAssolin/op-app-industrial/issues/16), como condições antes de piloto com dados reais. Não há liberação de produção nesta PR.
+
 ## Diagnóstico da conta usada na validação
 
 Para testar Líder, usar uma conta com apenas o grupo Líder, ativa e staff, sem flag de superusuário e sem grupo Administrador. Superusuário e associação a Administrador continuam concedendo poderes administrativos por definição; o rótulo ou nome de usuário “líder” não limita esses poderes. Atualizar o repositório, executar configurar_perfis, reiniciar o servidor e sair/entrar com a conta correta antes de repetir a validação. O comando sincroniza grupos, mas não remove grupos extras nem altera is_superuser de contas existentes.
