@@ -292,7 +292,7 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 | #004 | Alocações diárias | Implementadas no Admin; validação pelo CI |
 | #005 | Visualização semanal | Implementada; validação pelo CI |
 | #006 | Permissões e validação do MVP | Concluída localmente por aceite combinado; 118 testes aprovados |
-| #016 | Preparação e implantação do piloto | Plano de deploy; host e infraestrutura pendentes de definição |
+| #016 | Preparação e implantação do piloto | Plano de deploy para VPS em industrial.manexlabs.dev; ambiente ainda não implantado |
 
 *Numeração conferida nas issues do repositório. Consulte o GitHub para o estado atualizado.*
 
