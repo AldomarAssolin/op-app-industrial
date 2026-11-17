@@ -4,7 +4,7 @@ Data: 17/11/2026. Referência revisada: `main`, commit `68bd91e9ef2e2803b050e176
 
 **Situação:** MVP funcional validado localmente; preparação de implantação ainda pendente. Este documento é um plano, sem provisionamento, alteração de DNS, publicação, cópia de dados ou liberação de piloto.
 
-Manex pediu primeiro o diagnóstico e o plano. Destino definido por Manex em 17/11/2026: **VPS**, com endereço público **industrial.manexlabs.dev**. Ainda é necessário identificar a VPS, confirmar o método de operação (por exemplo, painel ou acesso SSH), avaliar recursos e definir o isolamento dos serviços. Não assumir provedor, painel, acesso disponível ou DNS já configurado.
+Manex pediu primeiro o diagnóstico e o plano. Destino definido por Manex em 17/11/2026: **VPS**, com endereço público **industrial.manexlabs.dev**. Operação escolhida: **EasyPanel**. Ainda é necessário identificar a VPS/painel, avaliar recursos e definir o isolamento dos serviços. Acesso ao painel, DNS e certificado ainda não foram conferidos.
 
 ## 1. O que já está pronto
 
@@ -27,10 +27,10 @@ Essas evidências validam o comportamento local. Não comprovam capacidade do se
 
 | Área | Estado observado no repositório | Trabalho necessário |
 | --- | --- | --- |
-| Destino | VPS escolhida; servidor e acesso operacional ainda não identificados | Confirmar a VPS, verificar recursos, acesso, custos e isolamento |
+| Destino | VPS com EasyPanel escolhida; servidor e acesso ainda não conferidos | Identificar painel/VPS, verificar recursos, acesso, custos e isolamento |
 | Domínio | `industrial.manexlabs.dev` aprovado; DNS e certificado ainda não conferidos | Definir/aplicar DNS na etapa de implantação e validar TLS/renovação |
 | Processo web | Desenvolvimento por `runserver`; nenhum servidor WSGI no manifesto | Definir servidor de aplicação, comando, reinício e encerramento; Gunicorn é uma opção proposta |
-| Empacotamento | Sem Dockerfile da aplicação; Compose contém somente banco de desenvolvimento | Se adotar contêiner, criar imagem reproduzível, usuário sem privilégios, exclusões de build e configuração do serviço |
+| Empacotamento | EasyPanel escolhido; sem Dockerfile da aplicação; Compose apenas de desenvolvimento | Proposta: App com build por Dockerfile versionado; preparar imagem reproduzível, usuário sem privilégios e exclusões de build |
 | Estáticos | Apenas `STATIC_URL`; sem `STATIC_ROOT` nem entrega de estáticos definida | Configurar coleta e serviço dos CSS/JS do Admin com DEBUG=False |
 | Configuração | Exemplo orientado a desenvolvimento; flags de HTTPS existem | Preparar configuração do destino, hosts restritos, segredos próprios, proxy e origens CSRF quando necessárias |
 | Banco | Compose local publica 127.0.0.1:5433 | Criar banco/volume próprios no destino, acesso interno e credenciais distintas; conta da aplicação sem poderes administrativos globais |
@@ -53,13 +53,13 @@ flowchart TD
 
 Os estáticos serão servidos pela solução escolhida na etapa de empacotamento, sem depender de DEBUG=True. Somente a entrada HTTPS fica pública; o banco e a porta interna da aplicação não devem ser publicados para a Internet.
 
-**Opção a avaliar:** contêiner Django com Gunicorn e PostgreSQL separado. Isso favorece repetição do build e pode aproveitar uma plataforma de contêineres. Exige preparar imagem, rede, volumes, recursos e operação. Se o provedor oferecer execução Python gerenciada, adaptar a entrega sem criar uma segunda infraestrutura desnecessária. A VPS está aprovada como destino; uso de EasyPanel ou de outro método de operação ainda precisa ser confirmado.
+**Proposta para o EasyPanel:** um projeto isolado com serviço App para Django/Gunicorn e serviço Postgres separado. Build por Dockerfile versionado favorece reprodução e revisão da imagem. Usar domínio no serviço App e conexão interna com o banco, sem publicar portas do PostgreSQL. Os nomes dos serviços e o método de build serão confirmados antes de criar recursos.
 
 ## 4. Decisões antes de implementar
 
 | Decisão | Situação / critério |
 | --- | --- |
-| Hospedagem | VPS aprovada; identificar o servidor e confirmar capacidade, custo, manutenção, acesso e backup. Medir a carga atual antes de acrescentar serviços |
+| Hospedagem | VPS com EasyPanel aprovada; identificar o painel/servidor e confirmar capacidade, custo, manutenção, acesso e backup. Medir a carga atual antes de acrescentar serviços |
 | Nome do host | Aprovado: industrial.manexlabs.dev. DNS, destino do registro e certificado ainda não validados |
 | Primeiro conteúdo | Proposta: iniciar piloto externo com dados sintéticos; dados reais exigem autorização separada |
 | Responsáveis | Nomear responsável por ambiente, suporte, atualizações e recuperação; não presumir disponibilidade permanente de uma pessoa |
@@ -72,7 +72,7 @@ Os estáticos serão servidos pela solução escolhida na etapa de empacotamento
 
 | Etapa | Entrega concreta | Evidência para avançar |
 | --- | --- | --- |
-| 1. Confirmar ambiente | VPS e industrial.manexlabs.dev definidos; confirmar servidor, método de operação, responsáveis, capacidade e estratégia de dados | Decisões registradas; nenhuma publicação implícita |
+| 1. Confirmar ambiente | VPS, EasyPanel e industrial.manexlabs.dev definidos; confirmar painel/servidor, responsáveis, capacidade e estratégia de dados | Decisões registradas; nenhuma publicação implícita |
 | 2. Preparar aplicação | Servidor WSGI, estáticos, configuração de deploy e empacotamento adequado | Build reproduzível; aplicação inicia com DEBUG=False; CSS/JS do Admin carregam; suíte e CI passam |
 | 3. Ensaiar release | Procedimento de migração, configuração de perfis, healthcheck e versão | Subida em ambiente descartável, reinício e falha controlada observados; rollback documentado |
 | 4. Preparar recuperação | Backup, armazenamento protegido, retenção e procedimento de restauração | Restaurar uma cópia em outro banco; conferir usuários/grupos/vínculos, tarefas/histórico e alocações; registrar tempos |
@@ -116,7 +116,22 @@ Usar como entradas `/admin/` e `/planejamento/semanal/`. A rota `/` hoje não ex
 
 A [issue #16](https://github.com/AldomarAssolin/op-app-industrial/issues/16) fica aberta. Para encerrá-la, registrar host exato, infraestrutura, commit/imagem implantados, data, responsáveis, evidências da matriz, recuperação e aprovação do uso dos dados. Não marcar itens do ambiente real como concluídos por testes locais.
 
-**Próxima entrega recomendada:** identificar a VPS e confirmar o método de operação e os recursos; depois preparar a aplicação para execução com DEBUG=False (servidor WSGI, estáticos e configuração para industrial.manexlabs.dev). DNS e publicação vêm após esse pacote funcionar em ensaio.
+**Próxima entrega recomendada:** identificar o painel/VPS e confirmar os recursos; preparar a aplicação para o serviço App do EasyPanel (Dockerfile proposto, servidor WSGI, estáticos e configuração com DEBUG=False para industrial.manexlabs.dev). DNS e publicação vêm após esse pacote funcionar em ensaio.
+
+## 9. Procedimento planejado no EasyPanel
+
+Esta é uma sequência futura; nenhum projeto, serviço ou domínio foi criado.
+
+1. Conferir versão do painel, capacidade e serviços existentes; definir projeto isolado do OP-APP.
+2. Criar serviço **Postgres**, selecionando explicitamente PostgreSQL 17 e armazenamento persistente. Conferir credenciais internas e privilégios do usuário da aplicação.
+3. Criar serviço **App** apontando para o repositório; proposta de build por Dockerfile versionado e referência de release identificável. Não usar o Compose local para publicar o banco.
+4. Preencher as variáveis esperadas pelo código: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DB_HOST` e `DB_PORT`, além das variáveis Django. Usar o host/porta internos fornecidos pelo painel; o código atual não interpreta `DATABASE_URL`. Guardar segredos no ambiente do serviço, nunca no Dockerfile.
+5. Executar migrações e sincronização dos perfis em etapa controlada; criar contas nominativas sem replicar automaticamente contas/sessões QA.
+6. Associar **industrial.manexlabs.dev** ao serviço App e à porta interna efetiva. Planejar DNS, emissão do certificado e encaminhamento HTTPS; validar proxy antes de habilitar confiança em cabeçalhos.
+7. Configurar backup lógico do Postgres para armazenamento externo protegido; definir agendamento/retenção e restaurar uma cópia em serviço/banco separado. Recursos disponíveis devem ser conferidos na versão/licença do painel.
+8. Conferir logs, saúde, estáticos, reinício, acesso externo e matriz de aceite; registrar versão, recuperação e procedimento de retorno.
+
+Os passos dependem da preparação da aplicação e do acesso ao ambiente. Recursos do painel não substituem o ensaio de recuperação nem a validação dos atributos de segurança no host real.
 
 ## Fontes técnicas
 
@@ -127,3 +142,7 @@ Consultadas em 17/11/2026; orientar a implementação sem substituir os testes d
 - [Django 5.2 — Estáticos em deploy](https://docs.djangoproject.com/en/5.2/howto/static-files/deployment/).
 - [Django 5.2 — SECURE_PROXY_SSL_HEADER](https://docs.djangoproject.com/en/5.2/ref/settings/#secure-proxy-ssl-header).
 - [PostgreSQL 17 — SQL Dump e restauração](https://www.postgresql.org/docs/17/backup-dump.html).
+
+- [EasyPanel — App Service](https://easypanel.io/docs/services/app).
+- [EasyPanel — Postgres Service](https://easypanel.io/docs/services/postgres).
+- [EasyPanel — Database Backups](https://easypanel.io/docs/backups/database).
