@@ -8,6 +8,18 @@ No EasyPanel, criar projeto **op-industrial** (nome proposto; conferir se já ex
 
 Em Credentials, identificar o **host interno**, porta, nome do banco, usuário e senha. Esses valores devem ser preenchidos diretamente no ambiente da aplicação; não enviar senhas no chat. Não presumir que o host seja `localhost` ou simplesmente `db`: usar o valor efetivo informado pelo painel.
 
+Separar a conta administrativa do serviço da conta usada pelo Django. Para o banco novo `op_app_piloto`, no psql administrativo do Postgres, criar uma conta limitada (nomes propostos):
+
+```sql
+CREATE ROLE op_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+\password op_app
+GRANT CONNECT ON DATABASE op_app_piloto TO op_app;
+\connect op_app_piloto
+GRANT USAGE, CREATE ON SCHEMA public TO op_app;
+```
+
+O comando `\password` solicita a senha interativamente; defini-la diretamente no console. Usar `op_app` nas variáveis da aplicação, não a conta administrativa do serviço. Essa conta pode criar/alterar as tabelas da aplicação nas migrações, mas não administrar o cluster. Antes de repetir comandos, conferir se a conta/banco já existe e adaptar os nomes; este procedimento é para um banco novo.
+
 ## 2. Aplicação
 
 Criar serviço **App**, nome proposto **web**. Configurar origem GitHub:
