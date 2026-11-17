@@ -4,7 +4,7 @@ Data: 17/11/2026. Referência revisada: `main`, commit `68bd91e9ef2e2803b050e176
 
 **Situação:** MVP funcional validado localmente; preparação de implantação ainda pendente. Este documento é um plano, sem provisionamento, alteração de DNS, publicação, cópia de dados ou liberação de piloto.
 
-Manex pediu primeiro o diagnóstico e o plano. O endereço será um subdomínio de **manexlabs.dev**; o nome exato e a infraestrutura ainda não foram escolhidos. Não assumir contratação de serviço ou uso da VPS existente.
+Manex pediu primeiro o diagnóstico e o plano. Destino definido por Manex em 17/11/2026: **VPS**, com endereço público **industrial.manexlabs.dev**. Ainda é necessário identificar a VPS, confirmar o método de operação (por exemplo, painel ou acesso SSH), avaliar recursos e definir o isolamento dos serviços. Não assumir provedor, painel, acesso disponível ou DNS já configurado.
 
 ## 1. O que já está pronto
 
@@ -27,8 +27,8 @@ Essas evidências validam o comportamento local. Não comprovam capacidade do se
 
 | Área | Estado observado no repositório | Trabalho necessário |
 | --- | --- | --- |
-| Destino | Nenhuma hospedagem configurada para este projeto | Escolher serviço/servidor, verificar recursos, acesso, custos e isolamento |
-| Domínio | Família `manexlabs.dev` escolhida; sem subdomínio exato aprovado | Escolher nome, definir DNS e validar TLS/renovação |
+| Destino | VPS escolhida; servidor e acesso operacional ainda não identificados | Confirmar a VPS, verificar recursos, acesso, custos e isolamento |
+| Domínio | `industrial.manexlabs.dev` aprovado; DNS e certificado ainda não conferidos | Definir/aplicar DNS na etapa de implantação e validar TLS/renovação |
 | Processo web | Desenvolvimento por `runserver`; nenhum servidor WSGI no manifesto | Definir servidor de aplicação, comando, reinício e encerramento; Gunicorn é uma opção proposta |
 | Empacotamento | Sem Dockerfile da aplicação; Compose contém somente banco de desenvolvimento | Se adotar contêiner, criar imagem reproduzível, usuário sem privilégios, exclusões de build e configuração do serviço |
 | Estáticos | Apenas `STATIC_URL`; sem `STATIC_ROOT` nem entrega de estáticos definida | Configurar coleta e serviço dos CSS/JS do Admin com DEBUG=False |
@@ -53,14 +53,14 @@ flowchart TD
 
 Os estáticos serão servidos pela solução escolhida na etapa de empacotamento, sem depender de DEBUG=True. Somente a entrada HTTPS fica pública; o banco e a porta interna da aplicação não devem ser publicados para a Internet.
 
-**Opção a avaliar:** contêiner Django com Gunicorn e PostgreSQL separado. Isso favorece repetição do build e pode aproveitar uma plataforma de contêineres. Exige preparar imagem, rede, volumes, recursos e operação. Se o provedor oferecer execução Python gerenciada, adaptar a entrega sem criar uma segunda infraestrutura desnecessária. A escolha de VPS/EasyPanel ainda não está aprovada.
+**Opção a avaliar:** contêiner Django com Gunicorn e PostgreSQL separado. Isso favorece repetição do build e pode aproveitar uma plataforma de contêineres. Exige preparar imagem, rede, volumes, recursos e operação. Se o provedor oferecer execução Python gerenciada, adaptar a entrega sem criar uma segunda infraestrutura desnecessária. A VPS está aprovada como destino; uso de EasyPanel ou de outro método de operação ainda precisa ser confirmado.
 
 ## 4. Decisões antes de implementar
 
 | Decisão | Situação / critério |
 | --- | --- |
-| Hospedagem | Pendente; comparar capacidade, custo, manutenção, acesso e backup. Se reutilizar VPS, medir a carga atual antes de acrescentar serviços |
-| Nome do host | Pendente; será subdomínio de manexlabs.dev, sem DNS criado por este plano |
+| Hospedagem | VPS aprovada; identificar o servidor e confirmar capacidade, custo, manutenção, acesso e backup. Medir a carga atual antes de acrescentar serviços |
+| Nome do host | Aprovado: industrial.manexlabs.dev. DNS, destino do registro e certificado ainda não validados |
 | Primeiro conteúdo | Proposta: iniciar piloto externo com dados sintéticos; dados reais exigem autorização separada |
 | Responsáveis | Nomear responsável por ambiente, suporte, atualizações e recuperação; não presumir disponibilidade permanente de uma pessoa |
 | Perda tolerável de dados | Definir RPO: quanto planejamento pode ser perdido; usar isso para escolher frequência das cópias |
@@ -72,7 +72,7 @@ Os estáticos serão servidos pela solução escolhida na etapa de empacotamento
 
 | Etapa | Entrega concreta | Evidência para avançar |
 | --- | --- | --- |
-| 1. Definir destino | Host exato, plataforma, responsáveis, capacidade e estratégia de dados | Decisões registradas; nenhuma publicação implícita |
+| 1. Confirmar ambiente | VPS e industrial.manexlabs.dev definidos; confirmar servidor, método de operação, responsáveis, capacidade e estratégia de dados | Decisões registradas; nenhuma publicação implícita |
 | 2. Preparar aplicação | Servidor WSGI, estáticos, configuração de deploy e empacotamento adequado | Build reproduzível; aplicação inicia com DEBUG=False; CSS/JS do Admin carregam; suíte e CI passam |
 | 3. Ensaiar release | Procedimento de migração, configuração de perfis, healthcheck e versão | Subida em ambiente descartável, reinício e falha controlada observados; rollback documentado |
 | 4. Preparar recuperação | Backup, armazenamento protegido, retenção e procedimento de restauração | Restaurar uma cópia em outro banco; conferir usuários/grupos/vínculos, tarefas/histórico e alocações; registrar tempos |
@@ -116,7 +116,7 @@ Usar como entradas `/admin/` e `/planejamento/semanal/`. A rota `/` hoje não ex
 
 A [issue #16](https://github.com/AldomarAssolin/op-app-industrial/issues/16) fica aberta. Para encerrá-la, registrar host exato, infraestrutura, commit/imagem implantados, data, responsáveis, evidências da matriz, recuperação e aprovação do uso dos dados. Não marcar itens do ambiente real como concluídos por testes locais.
 
-**Próxima entrega recomendada:** escolher hospedagem e subdomínio exato; depois preparar a aplicação para execução com DEBUG=False (servidor WSGI, estáticos e configuração). DNS e publicação vêm após esse pacote funcionar em ensaio.
+**Próxima entrega recomendada:** identificar a VPS e confirmar o método de operação e os recursos; depois preparar a aplicação para execução com DEBUG=False (servidor WSGI, estáticos e configuração para industrial.manexlabs.dev). DNS e publicação vêm após esse pacote funcionar em ensaio.
 
 ## Fontes técnicas
 
