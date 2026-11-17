@@ -75,13 +75,13 @@ Registrar data, commit testado, papel utilizado e resultado (sem senhas ou dados
 
 ## Critério de fechamento
 
-Código e CI/revisão aprovados são uma parte da entrega. Manter a issue #6 aberta até aprovação dos cenários manuais acima e registro da configuração do piloto. Nenhum ambiente empresarial ou integração externa é implantado por esta alteração.
+O critério inicial exigia repetição manual integral e registro da configuração do piloto. Em 17/11/2026, Manex definiu uso somente local e aprovou expressamente o aceite por evidências combinadas: execução manual de 16/11 mais os 118 testes, incluindo a validação HTTP real de 17/11. A #6 pode ser encerrada após incorporar a PR #15 com CI e revisão aprovados. A configuração do ambiente futuro permanece bloqueada pela #16; nenhum ambiente empresarial ou integração externa é implantado por esta alteração.
 
 ### Complemento de 17/11/2026
 
 Manex definiu uso somente local por enquanto. A [validação HTTP complementar](aceitacao-local-2026-11-17.md) registra 118 testes aprovados e cobre POSTs adulterados, Consulta sem escrita, cadastro/transferência pelo Coordenador, CSRF, cookies, logout e exclusão em servidor HTTP real. É evidência automatizada complementar: a coluna manual de 16/11 acima preserva o resultado histórico daquela execução.
 
-O aceite por evidências combinadas (navegador de 16/11 + HTTP de 17/11), em lugar da repetição manual integral, aguarda decisão de Manex. HTTPS, configuração do host e recuperação do banco efetivo ficam na [issue #16](https://github.com/AldomarAssolin/op-app-industrial/issues/16), como condições antes de piloto com dados reais. Não há liberação de produção nesta PR.
+O aceite por evidências combinadas (navegador de 16/11 + HTTP de 17/11), em lugar da repetição manual integral, foi aprovado por Manex em 17/11/2026. HTTPS, configuração do host e recuperação do banco efetivo ficam na [issue #16](https://github.com/AldomarAssolin/op-app-industrial/issues/16), como condições antes de piloto com dados reais. Não há liberação de produção nesta PR.
 
 ## Diagnóstico da conta usada na validação
 
