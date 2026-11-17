@@ -2,7 +2,7 @@
 
 Sistema independente para **planejamento e distribuição diária de trabalhadores em tarefas industriais**, com consulta consolidada por semana. O projeto busca evoluir o planejamento hoje realizado em planilhas, preservando a simplicidade do processo operacional.
 
-> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os cadastros organizacionais da issue #2 estão implementados no Django Admin. As tarefas da issue #3 possuem cadastro e ciclo de vida no Admin. Alocações diárias da issue #4 permitem distribuir trabalhadores em vários dias, com autoria e validação. O quadro semanal da issue #5 consulta essas alocações com escopo por setor autorizado.
+> **Estado do projeto:** MVP das issues #1 a #6 implementado e validado localmente por evidências combinadas de navegador e 118 testes em PostgreSQL 17 ([CI](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/44182988282)). A implantação real ainda não foi realizada; a issue #16 está na etapa de [planejamento do deploy](docs/plano-deploy.md).
 
 ## 1. Objetivo e contexto
 
@@ -248,13 +248,13 @@ Em **Planejamento operacional → Alocações diárias**, cadastre ou corrija um
 
 Abra `/planejamento/semanal/` ou o link **Quadro semanal** na listagem de alocações. Selecione uma data da semana e um setor autorizado; os links anterior/próxima preservam os filtros. Duas tarefas no mesmo dia aparecem em linhas diferentes. Sábado/domingo são incluídos quando selecionados ou quando há alocações nesses dias. A tela oferece estilo de impressão e exige `view_alocacao`; para usuários comuns, configure os vínculos **Organização → Acessos de usuários a setores**. Sem vínculos, o quadro fica vazio. Veja [docs/quadro-semanal.md](docs/quadro-semanal.md).
 
-A issue #6 estende o escopo às listagens, detalhes, escolhas e gravações do Admin. Configure os grupos com `python manage.py configurar_perfis` após `migrate`; apenas o superusuário atribui contas/grupos/vínculos. Leia [docs/seguranca-piloto.md](docs/seguranca-piloto.md) para a matriz de perfis e a aceitação local obrigatória antes de encerrar a issue.
+A issue #6 estende o escopo às listagens, detalhes, escolhas e gravações do Admin. Configure os grupos com `python manage.py configurar_perfis` após `migrate`; apenas o superusuário atribui contas/grupos/vínculos. Leia [docs/seguranca-piloto.md](docs/seguranca-piloto.md) para a matriz de perfis e o aceite local registrado da issue #6.
 
 ## 8. Segurança e limites do projeto
 
 Os perfis são Administrador (operação global), Coordenador, Líder e Consulta (setores vinculados). Consulta não grava. Administrador operacional não gerencia credenciais, grupos ou concessões: essa configuração é exclusiva do superusuário. Alocações exigem autorização tanto para o setor da tarefa quanto para o setor principal do trabalhador. Novas alterações de tarefa pelo Admin registram o ator no histórico.
 
-A validação local anterior do quadro foi confirmada pelo usuário. Os novos cenários de perfis e o ambiente real do piloto ainda precisam de aceitação conforme [docs/seguranca-piloto.md](docs/seguranca-piloto.md).
+Os cenários locais de perfis foram aceitos por evidências combinadas na issue #6. O ambiente real do piloto continua pendente na issue #16, conforme [docs/seguranca-piloto.md](docs/seguranca-piloto.md) e o [plano de deploy](docs/plano-deploy.md).
 
 - Não versionar senhas, chaves, tokens ou o arquivo `.env`.
 - Restringir o banco de desenvolvimento a `127.0.0.1`.
@@ -291,13 +291,16 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 | #003 | Gestão de tarefas | Implementada no Admin; validação pelo CI |
 | #004 | Alocações diárias | Implementadas no Admin; validação pelo CI |
 | #005 | Visualização semanal | Implementada; validação pelo CI |
-| #006 | Permissões e validação do MVP | Implementação de autorização; aceitação manual do piloto pendente |
+| #006 | Permissões e validação do MVP | Concluída localmente por aceite combinado; 118 testes aprovados |
+| #016 | Preparação e implantação do piloto | Plano de deploy; host e infraestrutura pendentes de definição |
 
 *Numeração conferida nas issues do repositório. Consulte o GitHub para o estado atualizado.*
 
 ## 11. Documentação
 
 As decisões de arquitetura, regras de negócio e guias técnicos serão mantidos em `docs/`. O README deve continuar sendo o ponto de entrada do projeto, sem acumular toda a especificação funcional.
+
+Veja o [plano de deploy da issue #16](docs/plano-deploy.md) para o diagnóstico do projeto, decisões pendentes, etapas e evidências necessárias antes de publicar. O MVP foi validado localmente; a implantação real ainda não foi realizada.
 
 ---
 
