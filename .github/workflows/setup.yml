@@ -42,10 +42,30 @@ jobs:
           python manage.py configurar_perfis
           python manage.py makemigrations --check --dry-run
           python manage.py migrate --check
+          python manage.py collectstatic --noinput
           python manage.py test -v 2 --noinput
       - name: Diagnóstico do banco em caso de falha
         if: failure()
         run: docker compose logs db
+      - name: Validar imagem do piloto sem acesso ao banco
+        run: |
+          docker build -t op-app:ci .
+          docker run -d --name op-app-smoke -p 127.0.0.1:18000:8000 \
+            -e DJANGO_SECRET_KEY=ci-only-disposable-key-for-container-smoke-not-for-production \
+            -e DJANGO_DEBUG=False -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost \
+            -e POSTGRES_DB=unused -e POSTGRES_USER=unused -e POSTGRES_PASSWORD=unused \
+            -e DB_HOST=127.0.0.1 -e DB_PORT=9 op-app:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18000/health/; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:18000/health/
+          curl --fail --silent http://127.0.0.1:18000/admin/login/ > /dev/null
+          curl --fail --silent http://127.0.0.1:18000/static/admin/css/base.css > /dev/null
+          test "$(docker exec op-app-smoke id -u)" != 0
+      - name: Encerrar contêiner de validação
+        if: always()
+        run: docker rm -f op-app-smoke || true
       - name: Encerrar banco descartável do CI
         if: always()
         run: docker compose down -v

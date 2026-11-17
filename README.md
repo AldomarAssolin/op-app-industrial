@@ -192,6 +192,7 @@ Os nove testes de infraestrutura implementados na issue #1 verificam:
 Execute a suíte completa:
 
 ```bash
+python manage.py collectstatic --noinput
 python manage.py test --verbosity=2
 ```
 
@@ -298,6 +299,8 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 ## 11. Documentação
 
 As decisões de arquitetura, regras de negócio e guias técnicos serão mantidos em `docs/`. O README deve continuar sendo o ponto de entrada do projeto, sem acumular toda a especificação funcional.
+
+Para configurar o piloto em industrial.manexlabs.dev, consulte o [roteiro do EasyPanel](docs/easypanel-configuracao.md). Ele descreve banco, aplicação, variáveis, domínio e verificações; a issue #16 continua aberta até validação do ambiente real.
 
 ---
 
