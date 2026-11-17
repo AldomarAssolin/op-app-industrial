@@ -47,6 +47,6 @@ O runner cria e destrói o banco de teste; o usuário PostgreSQL do ambiente de 
 
 O [relatório de 16/11](aceitacao-local-2026-11-16.md) permanece como evidência manual parcial, sem atribuir retroativamente um SHA ao checkout daquele dia. A rodada de 17/11 acrescenta cobertura HTTP automatizada para os cenários que não foram enviados manualmente no navegador. Não se declara que esses POSTs foram executados manualmente.
 
-Proposta de aceite do MVP local: combinar a navegação manual de 16/11 com a suíte HTTP e a regressão de 17/11. Essa escolha de método precisa ser aceita por Manex antes de substituir a exigência de repetição manual integral e encerrar a #6. Até esse aceite e a conclusão da revisão/CI, a issue permanece aberta.
+Em 17/11/2026, Manex aprovou expressamente o aceite por **evidências combinadas**: navegação manual de 16/11 mais os 118 testes, incluindo HTTP real de 17/11. Esse aceite substitui a repetição manual integral para o escopo somente local da #6. O encerramento fica condicionado à incorporação da PR #15 com CI e revisão aprovados.
 
 O encerramento local, se aceito, não aprova HTTPS, infraestrutura, backup/restauração do banco efetivo ou uso empresarial com dados reais. Essas condições permanecem na #16. Os registros sintéticos criados no computador de Manex em 16/11 continuam preservados; os desta rodada existem somente no banco descartável dos testes.
