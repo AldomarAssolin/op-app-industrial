@@ -1,0 +1,41 @@
+{% extends "planejamento/publico/base.html" %}
+{% block title %}Privacidade — OP-APP Backups{% endblock %}
+{% block content %}
+  <h1>Privacidade do OP-APP Backups</h1>
+  <p>Este aviso descreve a integração de uso privado que guarda e recupera cópias de
+    segurança do OP-APP no Google Drive autorizado pelo operador.</p>
+  <h2>Responsável e contato</h2>
+  <p>O mantenedor do projeto OP-APP é responsável pela operação da integração.
+    Dúvidas e solicitações devem ser encaminhadas ao
+    <a class="contato" href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+  <h2>Acesso ao Google Drive</h2>
+  <p>A autorização usa o escopo <code>drive.file</code>. A integração acessa os arquivos
+    e pastas criados por ela para enviar, listar e recuperar cópias de segurança,
+    conferir sua integridade e executar a gestão dessas cópias pelo operador.</p>
+  <p>Os metadados necessários incluem nomes, identificadores, tamanho e datas dos arquivos.
+    A finalidade do acesso é exclusivamente a cópia de segurança e a recuperação do sistema.</p>
+  <h2>Conteúdo e armazenamento</h2>
+  <p>Os backups podem conter cadastros, planejamento, histórico, contas e configurações
+    de acesso do OP-APP. O conteúdo e os nomes dos arquivos são criptografados pelo
+    rclone crypt antes do envio ao Drive. Na recuperação, o operador os descriptografa
+    no ambiente sob sua responsabilidade.</p>
+  <p>O ambiente de hospedagem processa o banco, os arquivos de trabalho e a configuração
+    da integração. O Google Drive armazena as cópias criptografadas na conta autorizada,
+    conforme as condições do serviço contratado pelo titular.</p>
+  <h2>Finalidade e compartilhamento</h2>
+  <p>Os dados acessados pelas APIs do Google são utilizados para operar os backups.
+    A integração não vende esses dados nem os utiliza para publicidade ou treinamento
+    de modelos de inteligência artificial.</p>
+  <h2>Retenção, exclusão e revogação</h2>
+  <p>O operador define o período de conservação e controla a exclusão das cópias no Drive
+    e no ambiente de hospedagem. A exclusão deve considerar também a lixeira e as
+    regras de retenção do provedor.</p>
+  <p>O titular pode revogar a autorização nas
+    <a href="https://myaccount.google.com/connections">conexões da Conta Google</a>.
+    A revogação interrompe o acesso autorizado; as cópias já armazenadas precisam ser
+    removidas separadamente pelo titular ou pelo operador responsável.</p>
+  <h2>Atualizações</h2>
+  <p>Este aviso deve ser revisado quando as finalidades, os serviços utilizados ou as
+    práticas de tratamento de dados forem alterados. Ele se limita à integração de
+    backups aqui descrita.</p>
+{% endblock %}

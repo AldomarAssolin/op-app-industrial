@@ -169,3 +169,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 # A sonda interna é de processo; não comprova conectividade ou migrações do banco.
 SECURE_REDIRECT_EXEMPT = [r"^health/$"]
+
+# Publicar somente após revisão do texto e escolha explícita do contato público.
+OP_APP_PUBLIC_PAGES_ENABLED = os.getenv("OP_APP_PUBLIC_PAGES_ENABLED", "False").lower() == "true"
+OP_APP_SUPPORT_EMAIL = os.getenv("OP_APP_SUPPORT_EMAIL", "").strip()

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}OP-APP{% endblock %}</title>
+  <style>
+    :root { color-scheme: light; font: 17px/1.65 system-ui, sans-serif; color: #19333d; background: #f4f7f8; }
+    body { margin: 0; }
+    header, main, footer { max-width: 800px; margin: auto; padding: 1.5rem; }
+    header { border-bottom: 1px solid #ccd8dc; }
+    nav { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+    a { color: #075d69; text-underline-offset: .2em; }
+    a:focus-visible { outline: 3px solid #b47100; outline-offset: 4px; }
+    h1, h2 { line-height: 1.25; }
+    h1 { font-size: clamp(1.8rem, 6vw, 2.6rem); }
+    h2 { margin-top: 2rem; font-size: 1.35rem; }
+    section { margin: 1.5rem 0; }
+    footer { border-top: 1px solid #ccd8dc; font-size: .9rem; }
+    .contato { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>OP-APP</strong>
+    <nav aria-label="Navegação pública">
+      <a href="{% url 'inicio' %}">Início</a>
+      <a href="{% url 'privacidade' %}">Privacidade</a>
+      <a href="{% url 'admin:index' %}">Acesso ao sistema</a>
+    </nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer>
+    <span class="contato">Suporte: <a href="mailto:{{ support_email }}">{{ support_email }}</a></span>
+  </footer>
+</body>
+</html>
