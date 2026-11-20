@@ -183,3 +183,5 @@ SECURE_REDIRECT_EXEMPT = [r"^health/$"]
 # Publicar somente após revisão do texto e escolha explícita do contato público.
 OP_APP_PUBLIC_PAGES_ENABLED = os.getenv("OP_APP_PUBLIC_PAGES_ENABLED", "False").lower() == "true"
 OP_APP_SUPPORT_EMAIL = os.getenv("OP_APP_SUPPORT_EMAIL", "").strip()
+# Opt-in separado: permite atualizar o Branding antes de substituir a home antiga.
+OP_APP_PRODUCT_HOME_ENABLED = os.getenv("OP_APP_PRODUCT_HOME_ENABLED", "False").lower() == "true"

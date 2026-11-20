@@ -55,6 +55,8 @@ jobs:
           docker run -d --name op-app-smoke -p 127.0.0.1:18000:8000 \
             -e DJANGO_SECRET_KEY=ci-only-disposable-key-for-container-smoke-not-for-production \
             -e DJANGO_DEBUG=False -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost \
+            -e OP_APP_PRODUCT_HOME_ENABLED=True \
+            -e OP_APP_PUBLIC_PAGES_ENABLED=True -e OP_APP_SUPPORT_EMAIL=ci@example.com \
             -e POSTGRES_DB=unused -e POSTGRES_USER=unused -e POSTGRES_PASSWORD=unused \
             -e DB_HOST=127.0.0.1 -e DB_PORT=9 op-app:ci
           for attempt in $(seq 1 30); do
@@ -62,6 +64,10 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:18000/health/
+          curl --fail --silent http://127.0.0.1:18000/ > /tmp/op-app-public-home.html
+          python -c "from pathlib import Path; assert 'EXEMPLO FICTÍCIO' in Path('/tmp/op-app-public-home.html').read_text()"
+          curl --fail --silent http://127.0.0.1:18000/integracoes/backup/ > /dev/null
+          curl --fail --silent http://127.0.0.1:18000/privacidade/ > /dev/null
           curl --fail --silent http://127.0.0.1:18000/admin/login/ > /dev/null
           curl --fail --silent http://127.0.0.1:18000/static/admin/css/base.css > /dev/null
           test "$(docker exec op-app-smoke id -u)" != 0

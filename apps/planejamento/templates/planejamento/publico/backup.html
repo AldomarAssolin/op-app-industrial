@@ -1,0 +1,18 @@
+{% extends "planejamento/publico/base.html" %}
+{% block title %}OP-APP — Planejamento operacional industrial{% endblock %}
+{% block content %}
+  <h1>Planejamento operacional industrial</h1>
+  <p>O OP-APP organiza setores, funções, trabalhadores, tarefas e alocações diárias.
+    O quadro semanal reúne o planejamento para apoiar a distribuição das atividades.</p>
+  <p>As informações operacionais ficam nas áreas autenticadas, com permissões por perfil e setor.</p>
+  <section aria-labelledby="backups">
+    <h2 id="backups">OP-APP Backups</h2>
+    <p>Integração de uso privado para guardar cópias de segurança do banco do OP-APP
+      no Google Drive da conta autorizada pelo operador.</p>
+    <p>A integração usa rclone e autorização OAuth com o escopo <code>drive.file</code>.
+      As cópias são criptografadas antes do envio e podem ser recuperadas para conferir
+      sua integridade e restaurar o sistema.</p>
+    <p>O acesso aos arquivos do Drive, suas finalidades e o procedimento de revogação
+      estão descritos no <a href="{% url 'privacidade' %}">aviso de privacidade do OP-APP Backups</a>.</p>
+  </section>
+{% endblock %}
