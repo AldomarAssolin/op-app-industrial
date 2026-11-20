@@ -300,6 +300,8 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 
 As decisões de arquitetura, regras de negócio e guias técnicos serão mantidos em `docs/`. O README deve continuar sendo o ponto de entrada do projeto, sem acumular toda a especificação funcional.
 
+O [registro da implantação de 17/11/2026](docs/implantacao-2026-11-17.md) reúne as entregas, validações informadas pelo operador, ensaio de recuperação, cópia criptografada no Drive e pendências da issue #16. Consulte esse registro para o andamento da implantação; as referências históricas acima não representam o estado operacional atual.
+
 Para configurar o piloto em industrial.manexlabs.dev, consulte o [roteiro do EasyPanel](docs/easypanel-configuracao.md). Ele descreve banco, aplicação, variáveis, domínio e verificações; a issue #16 continua aberta até validação do ambiente real.
 
 ---
