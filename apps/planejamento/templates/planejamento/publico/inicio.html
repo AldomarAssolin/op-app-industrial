@@ -1,18 +1,58 @@
 {% extends "planejamento/publico/base.html" %}
-{% block title %}OP-APP — Planejamento operacional industrial{% endblock %}
+{% block title %}OP-APP — Sua equipe, suas tarefas, a semana organizada{% endblock %}
 {% block content %}
-  <h1>Planejamento operacional industrial</h1>
-  <p>O OP-APP organiza setores, funções, trabalhadores, tarefas e alocações diárias.
-    O quadro semanal reúne o planejamento para apoiar a distribuição das atividades.</p>
-  <p>As informações operacionais ficam nas áreas autenticadas, com permissões por perfil e setor.</p>
-  <section aria-labelledby="backups">
-    <h2 id="backups">OP-APP Backups</h2>
-    <p>Integração de uso privado para guardar cópias de segurança do banco do OP-APP
-      no Google Drive da conta autorizada pelo operador.</p>
-    <p>A integração usa rclone e autorização OAuth com o escopo <code>drive.file</code>.
-      As cópias são criptografadas antes do envio e podem ser recuperadas para conferir
-      sua integridade e restaurar o sistema.</p>
-    <p>O acesso aos arquivos do Drive, suas finalidades e o procedimento de revogação
-      estão descritos no <a href="{% url 'privacidade' %}">aviso de privacidade do OP-APP Backups</a>.</p>
+  <section class="hero wrap" aria-labelledby="apresentacao">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">Do planejamento à rotina do setor</p>
+        <h1 id="apresentacao">Sua equipe.<br>Suas tarefas.<br>A semana organizada.</h1>
+        <p class="lead">Distribua trabalhadores entre as tarefas de produção e confira quem está alocado em cada dia, por semana e setor.</p>
+        <div class="actions">
+          <a class="button" href="{% url 'admin:login' %}">Entrar no sistema <span aria-hidden="true">&nbsp;→</span></a>
+          <a class="button secondary" href="#como-funciona">Conhecer o fluxo</a>
+        </div>
+        <p class="small-note">Acesso para usuários cadastrados pelo responsável da operação.</p>
+      </div>
+      <div class="preview">
+        <div class="preview-head">
+          <span class="example-label">EXEMPLO FICTÍCIO</span><br>
+          <strong>O planejamento fica à vista.</strong>
+          <p>Setor ilustrativo: montagem e soldagem</p>
+        </div>
+        <div class="preview-scroll" role="region" aria-label="Exemplo de quadro semanal, com rolagem horizontal em telas pequenas" tabindex="0">
+          <table>
+            <caption>Semana ilustrativa · pessoas e atividades por dia</caption>
+            <thead><tr><th scope="col">Trabalhador / tarefa</th><th scope="col">Seg</th><th scope="col">Ter</th><th scope="col">Qua</th><th scope="col">Qui</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Pessoa A<span>Montagem de um eixo</span></th><td class="allocated">Alocado</td><td class="allocated">Alocado</td><td class="allocated">Alocado</td><td class="allocated">Alocado</td></tr>
+              <tr><th scope="row">Pessoa A<span>Soldagem de suportes</span></th><td class="day-empty">—</td><td class="allocated">Alocado</td><td class="day-empty">—</td><td class="day-empty">—</td></tr>
+              <tr><th scope="row">Pessoa B<span>Montagem de um eixo</span></th><td class="allocated">Alocado</td><td class="allocated">Alocado</td><td class="allocated">Alocado</td><td class="allocated">Alocado</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="preview-foot">Duas tarefas no mesmo dia aparecem em linhas distintas. Este exemplo é estático e não contém dados da operação.</p>
+      </div>
+    </div>
+  </section>
+  <div class="wrap"><div class="principle" aria-label="Recursos do planejamento"><span>Alocações por dia</span><span>Consulta por semana e setor</span><span>Acesso conforme o perfil</span></div></div>
+  <section class="section wrap" id="como-funciona" aria-labelledby="fluxo">
+    <p class="eyebrow">Um fluxo para o planejamento</p>
+    <h2 id="fluxo">Organizar. Distribuir. Conferir.</h2>
+    <p class="section-intro">O OP-APP apoia líderes e coordenadores na organização das atividades industriais. Cada etapa reúne as informações necessárias para planejar a equipe.</p>
+    <ol class="steps">
+      <li><span class="step-number" aria-hidden="true">01 / ORGANIZAÇÃO</span><h3>Conheça sua equipe</h3><p>Cadastre setores, funções e trabalhadores com o perfil responsável. Mantenha a equipe disponível para o planejamento do setor.</p></li>
+      <li><span class="step-number" aria-hidden="true">02 / PLANEJAMENTO</span><h3>Distribua as atividades</h3><p>Defina tarefas e períodos previstos. Aloque trabalhadores em um ou vários dias, com a função desempenhada em cada atividade.</p></li>
+      <li><span class="step-number" aria-hidden="true">03 / CONSULTA</span><h3>Confira a semana</h3><p>Consulte as alocações, filtre por setor autorizado e navegue entre semanas. Use a impressão para apoiar a conversa com a equipe.</p></li>
+    </ol>
+  </section>
+  <section class="section scope" aria-labelledby="operacao">
+    <div class="wrap scope-grid">
+      <div><p class="eyebrow">Planejamento com contexto</p><h2 id="operacao">A informação certa para cada responsabilidade.</h2><p class="section-intro">Tarefas com histórico e acesso por perfil e setor ajudam a manter o planejamento organizado, com autoria das alterações.</p></div>
+      <div><ul><li>Uma tarefa pode atravessar dias e semanas.</li><li>Uma pessoa pode participar de tarefas diferentes no mesmo dia.</li><li>Líderes e coordenadores trabalham nos setores autorizados.</li></ul><p class="small-note">Alocação não representa jornada exclusiva nem contabiliza horas. Dias vazios não comprovam disponibilidade.</p></div>
+    </div>
+  </section>
+  <section class="wrap closing" aria-labelledby="acesso">
+    <div><h2 id="acesso">Seu planejamento começa na equipe.</h2><p>Já tem acesso? Entre para consultar e organizar as atividades do seu setor.</p></div>
+    <a class="button" href="{% url 'admin:login' %}">Entrar no sistema <span aria-hidden="true">&nbsp;→</span></a>
   </section>
 {% endblock %}
