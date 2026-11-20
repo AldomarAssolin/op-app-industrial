@@ -1,0 +1,12 @@
+[Unit]
+Description=Backup diario OP-APP
+
+[Timer]
+# UTC explicito: 06:00 UTC corresponde a 03:00 em Brasilia (UTC-3).
+OnCalendar=*-*-* 06:00:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+Unit=op-app-backup.service
+
+[Install]
+WantedBy=timers.target
