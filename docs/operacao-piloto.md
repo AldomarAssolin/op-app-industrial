@@ -1,6 +1,6 @@
 # Operação e recuperação do piloto — issue #16
 
-Atualizado em 20/11/2026. Política escolhida por Manex: **backup diário e retenção de 30 dias**. Horário inicial preparado: 03:00 de Brasília, com atraso aleatório de até dez minutos. Meta inicial de perda de dados: até 24 horas, condicionada a backups bem-sucedidos; falhas precisam de intervenção. Responsável e meta de recuperação ainda precisam de confirmação do operador.
+Atualizado em 20/11/2026. Política escolhida por Manex: **backup diário e retenção de 30 dias**. Horário inicial preparado: 03:00 de Brasília, com atraso aleatório de até dez minutos. Meta inicial de perda de dados: até 24 horas, condicionada a backups bem-sucedidos; falhas precisam de intervenção. Manex confirmou que assume inicialmente a operação e o suporte, incluindo conferência diária dos backups. Meta de recuperação escolhida: **até 4 horas**, ainda não comprovada por ensaio completo.
 
 Este é um roteiro executável para o host Ubuntu da VPS. A existência dos arquivos no repositório não comprova instalação, agendamento ou execução no servidor. Continuam válidas as evidências e limitações do [registro de 17/11](implantacao-2026-11-17.md).
 
@@ -147,7 +147,8 @@ Antes de cada release: registrar SHA/imagem atual e alvo, backup confirmado e mi
 - [ ] Segredos de recuperação guardados fora da VPS e recuperáveis.
 - [ ] Serviço instalado e execução manual integral aprovada.
 - [ ] Timer habilitado e execução agendada observada; retenção conferida.
-- [ ] Responsável por operação/suporte confirmado; acompanhamento e canal de falha definidos.
+- [x] Responsável por operação/suporte confirmado: Manex, com acompanhamento diário.
+- [ ] Conferência diária iniciada; canal de notificação ativa ainda a definir, caso seja necessário operar sem esse acompanhamento.
 - [ ] Restauração com conteúdo sintético e relações conferida; tempo medido e meta de recuperação acordada.
 - [ ] HTTPS, HSTS/avisos, cookies, CSRF, estáticos, contas e escopo setorial conferidos no host efetivo.
 - [ ] Versão publicada, reversão, evidências e autorização dos dados registradas.
