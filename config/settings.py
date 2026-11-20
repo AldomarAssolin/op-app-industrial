@@ -96,34 +96,90 @@ DATABASES = {
         "PASSWORD": os.environ["POSTGRES_PASSWORD"],
         "HOST": os.getenv("DB_HOST", "127.0.0.1"),
         "PORT": os.getenv("DB_PORT", "5433"),
-        "CONN_M…2244 tokens truncated… há A/AAAA conflitantes; não adivinhar IP ou alterar outros subdomínios. No serviço App, adicionar domínio associado à porta interna 8000 e configurar HTTPS conforme o painel. Se houver outro proxy/CDN, conferir o percurso completo e a política de certificado.
+        "CONN_MAX_AGE": 0,
+    }
+}
 
-Validar certificado, redirecionamentos, login/logout, cookies e rejeição de POST sem token no host real. Depois executar:
 
-```bash
-python manage.py check --deploy
-```
+# Password validation
+# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
-Registrar e resolver os avisos ou justificar cada um. HSTS é uma decisão posterior à validação do HTTPS; não ativar preload/includeSubDomains indiscriminadamente. Este roteiro não declara check --deploy ou HTTPS do servidor como aprovados.
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
 
-## 6. Contas, backup e aceite
 
-Criar contas nominativas com staff e somente os grupos adequados; cadastrar UsuarioSetor para Líder/Coordenador/Consulta. Não dar superusuário a contas operacionais nem copiar contas QA locais. Usar apenas dados sintéticos na primeira validação.
+# Internationalization
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-Definir responsável, frequência, retenção e destino externo protegido dos backups. Gerar backup do banco efetivo, restaurar em outro banco e conferir conteúdo/acessos sem sobrescrever a origem. Banco persistente ou mensagem de backup concluído não comprova recuperação.
+LANGUAGE_CODE = 'en-us'
 
-Conferir o [roteiro operacional e checklist de aceite](operacao-piloto.md) e registrar host, commit/imagem, data, responsáveis e resultados na issue #16. O plano inicial da PR #17 foi superado pela implantação e por este roteiro. Sem a matriz e a recuperação aprovadas, não liberar dados reais nem fechar a issue.
+TIME_ZONE = 'UTC'
 
-## Desenvolvimento e validação do pacote
+USE_I18N = True
 
-Ao instalar dependências atualizadas, coletar estáticos antes da suíte:
+USE_TZ = True
 
-```bash
-python -m pip install -r requirements.txt
-python manage.py collectstatic --noinput
-python manage.py test -v 2 --noinput
-```
 
-O CI também constrói a imagem e verifica processo, tela de login, CSS e usuário não root com credenciais descartáveis. Isso não substitui aceitação no EasyPanel.
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-Referências: [App](https://easypanel.io/docs/services/app), [Postgres](https://easypanel.io/docs/services/postgres), [WhiteNoise](https://whitenoise.readthedocs.io/en/stable/django.html), [Gunicorn](https://gunicorn.org/reference/settings/).
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Flags explícitas para piloto HTTPS; manter False somente em desenvolvimento HTTP local.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "False").lower() == "true"
+CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "False").lower() == "true"
+SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False").lower() == "true"
+
+# Ativar gradualmente somente depois de conferir HTTPS no host efetivo.
+try:
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0"))
+except ValueError as error:
+    raise ImproperlyConfigured("DJANGO_SECURE_HSTS_SECONDS deve ser um inteiro não negativo.") from error
+if SECURE_HSTS_SECONDS < 0:
+    raise ImproperlyConfigured("DJANGO_SECURE_HSTS_SECONDS deve ser um inteiro não negativo.")
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+
+# Somente após conferir isolamento do backend e saneamento dos cabeçalhos no proxy.
+SECURE_PROXY_SSL_HEADER = (
+    ("HTTP_X_FORWARDED_PROTO", "https")
+    if os.getenv("DJANGO_TRUST_PROXY_HEADERS", "False").lower() == "true"
+    else None
+)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+# A sonda interna é de processo; não comprova conectividade ou migrações do banco.
+SECURE_REDIRECT_EXEMPT = [r"^health/$"]
+
+# Publicar somente após revisão do texto e escolha explícita do contato público.
+OP_APP_PUBLIC_PAGES_ENABLED = os.getenv("OP_APP_PUBLIC_PAGES_ENABLED", "False").lower() == "true"
+OP_APP_SUPPORT_EMAIL = os.getenv("OP_APP_SUPPORT_EMAIL", "").strip()
