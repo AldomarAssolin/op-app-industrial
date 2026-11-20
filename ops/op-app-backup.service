@@ -1,0 +1,15 @@
+[Unit]
+Description=Backup PostgreSQL OP-APP com verificacao no Drive
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+EnvironmentFile=/etc/op-app-backup.env
+ExecStart=/usr/bin/python3 /opt/op-app-ops/backup.py
+TimeoutStartSec=2h
+NoNewPrivileges=true
+PrivateTmp=true
+# Acesso ao Docker equivale a privilegios de root; instalar apenas codigo revisado.

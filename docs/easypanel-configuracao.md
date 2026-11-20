@@ -93,7 +93,7 @@ Criar contas nominativas com staff e somente os grupos adequados; cadastrar Usua
 
 Definir responsável, frequência, retenção e destino externo protegido dos backups. Gerar backup do banco efetivo, restaurar em outro banco e conferir conteúdo/acessos sem sobrescrever a origem. Banco persistente ou mensagem de backup concluído não comprova recuperação.
 
-Conferir a [matriz do plano](plano-deploy.md), quando incorporada pela PR #17, e registrar host, commit/imagem, data, responsáveis e resultados na issue #16. Sem a matriz e a recuperação aprovadas, não liberar dados reais nem fechar a issue.
+Conferir o [roteiro operacional e checklist de aceite](operacao-piloto.md) e registrar host, commit/imagem, data, responsáveis e resultados na issue #16. O plano inicial da PR #17 foi superado pela implantação e por este roteiro. Sem a matriz e a recuperação aprovadas, não liberar dados reais nem fechar a issue.
 
 ## Desenvolvimento e validação do pacote
 

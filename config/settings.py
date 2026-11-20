@@ -157,6 +157,16 @@ SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "False").lower
 CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "False").lower() == "true"
 SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False").lower() == "true"
 
+# Ativar gradualmente somente depois de conferir HTTPS no host efetivo.
+try:
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0"))
+except ValueError as error:
+    raise ImproperlyConfigured("DJANGO_SECURE_HSTS_SECONDS deve ser um inteiro não negativo.") from error
+if SECURE_HSTS_SECONDS < 0:
+    raise ImproperlyConfigured("DJANGO_SECURE_HSTS_SECONDS deve ser um inteiro não negativo.")
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+
 # Somente após conferir isolamento do backend e saneamento dos cabeçalhos no proxy.
 SECURE_PROXY_SSL_HEADER = (
     ("HTTP_X_FORWARDED_PROTO", "https")

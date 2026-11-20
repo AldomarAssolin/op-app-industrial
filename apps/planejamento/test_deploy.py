@@ -3,6 +3,11 @@ from django.urls import reverse
 
 
 class DeploymentTests(SimpleTestCase):
+    @override_settings(SECURE_HSTS_SECONDS=3600, SECURE_HSTS_INCLUDE_SUBDOMAINS=False, SECURE_HSTS_PRELOAD=False)
+    def test_hsts_gradual_somente_em_https_sem_subdominios_ou_preload(self):
+        self.assertEqual(self.client.get(reverse("health"), secure=True)["Strict-Transport-Security"], "max-age=3600")
+        self.assertNotIn("Strict-Transport-Security", self.client.get(reverse("health")))
+
     def test_sonda_nao_depende_de_banco_ou_login(self):
         # SimpleTestCase proíbe acesso ao banco, inclusive indireto.
         resposta = self.client.get(reverse("health"))

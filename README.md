@@ -2,7 +2,7 @@
 
 Sistema independente para **planejamento e distribuição diária de trabalhadores em tarefas industriais**, com consulta consolidada por semana. O projeto busca evoluir o planejamento hoje realizado em planilhas, preservando a simplicidade do processo operacional.
 
-> **Estado do projeto:** estrutura Django/PostgreSQL implementada e validada com nove testes em PostgreSQL 17 ([evidência](https://github.com/AldomarAssolin/op-app-industrial/actions/runs/43637578954)). Os cadastros organizacionais da issue #2 estão implementados no Django Admin. As tarefas da issue #3 possuem cadastro e ciclo de vida no Admin. Alocações diárias da issue #4 permitem distribuir trabalhadores em vários dias, com autoria e validação. O quadro semanal da issue #5 consulta essas alocações com escopo por setor autorizado.
+> **Estado do projeto:** MVP funcional das issues #1 a #6 implementado e aceito localmente. A aplicação já foi implantada e teve verificações informadas pelo operador; o aceite operacional permanece na issue #16. Consulte o [registro da implantação](docs/implantacao-2026-11-17.md) e o [roteiro de operação e recuperação](docs/operacao-piloto.md).
 
 ## 1. Objetivo e contexto
 
@@ -249,13 +249,13 @@ Em **Planejamento operacional → Alocações diárias**, cadastre ou corrija um
 
 Abra `/planejamento/semanal/` ou o link **Quadro semanal** na listagem de alocações. Selecione uma data da semana e um setor autorizado; os links anterior/próxima preservam os filtros. Duas tarefas no mesmo dia aparecem em linhas diferentes. Sábado/domingo são incluídos quando selecionados ou quando há alocações nesses dias. A tela oferece estilo de impressão e exige `view_alocacao`; para usuários comuns, configure os vínculos **Organização → Acessos de usuários a setores**. Sem vínculos, o quadro fica vazio. Veja [docs/quadro-semanal.md](docs/quadro-semanal.md).
 
-A issue #6 estende o escopo às listagens, detalhes, escolhas e gravações do Admin. Configure os grupos com `python manage.py configurar_perfis` após `migrate`; apenas o superusuário atribui contas/grupos/vínculos. Leia [docs/seguranca-piloto.md](docs/seguranca-piloto.md) para a matriz de perfis e a aceitação local obrigatória antes de encerrar a issue.
+A issue #6 estende o escopo às listagens, detalhes, escolhas e gravações do Admin. Configure os grupos com `python manage.py configurar_perfis` após `migrate`; apenas o superusuário atribui contas/grupos/vínculos. Leia [docs/seguranca-piloto.md](docs/seguranca-piloto.md) para a matriz de perfis e o aceite local registrado da issue #6.
 
 ## 8. Segurança e limites do projeto
 
 Os perfis são Administrador (operação global), Coordenador, Líder e Consulta (setores vinculados). Consulta não grava. Administrador operacional não gerencia credenciais, grupos ou concessões: essa configuração é exclusiva do superusuário. Alocações exigem autorização tanto para o setor da tarefa quanto para o setor principal do trabalhador. Novas alterações de tarefa pelo Admin registram o ator no histórico.
 
-A validação local anterior do quadro foi confirmada pelo usuário. Os novos cenários de perfis e o ambiente real do piloto ainda precisam de aceitação conforme [docs/seguranca-piloto.md](docs/seguranca-piloto.md).
+A issue #6 foi concluída por aceite local combinado de navegador e testes HTTP. A implantação e as pendências operacionais do piloto são acompanhadas separadamente pela issue #16; confira [operação e recuperação](docs/operacao-piloto.md).
 
 - Não versionar senhas, chaves, tokens ou o arquivo `.env`.
 - Restringir o banco de desenvolvimento a `127.0.0.1`.
@@ -267,11 +267,7 @@ A validação local anterior do quadro foi confirmada pelo usuário. Os novos ce
 
 ## 9. Fluxo de desenvolvimento
 
-Branch de referência para esta etapa:
-
-```text
-feature/issue-006-seguranca
-```
+Criar uma branch por entrega a partir de `main`; incorporar alterações por pull request com verificações e revisão.
 
 Antes de abrir um pull request:
 
@@ -292,7 +288,8 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 | #003 | Gestão de tarefas | Implementada no Admin; validação pelo CI |
 | #004 | Alocações diárias | Implementadas no Admin; validação pelo CI |
 | #005 | Visualização semanal | Implementada; validação pelo CI |
-| #006 | Permissões e validação do MVP | Implementação de autorização; aceitação manual do piloto pendente |
+| #006 | Permissões e validação do MVP | Concluída por aceite local combinado; evidências em docs/ |
+| #016 | Implantação e operação do piloto | Aplicação implantada; automação, recuperação e aceite operacional em andamento |
 
 *Numeração conferida nas issues do repositório. Consulte o GitHub para o estado atualizado.*
 
@@ -302,7 +299,7 @@ As decisões de arquitetura, regras de negócio e guias técnicos serão mantido
 
 O [registro da implantação de 17/11/2026](docs/implantacao-2026-11-17.md) reúne as entregas, validações informadas pelo operador, ensaio de recuperação, cópia criptografada no Drive e pendências da issue #16. Consulte esse registro para o andamento da implantação; as referências históricas acima não representam o estado operacional atual.
 
-Para configurar o piloto em industrial.manexlabs.dev, consulte o [roteiro do EasyPanel](docs/easypanel-configuracao.md). Ele descreve banco, aplicação, variáveis, domínio e verificações; a issue #16 continua aberta até validação do ambiente real.
+Para configurar o piloto em industrial.manexlabs.dev, consulte o [roteiro do EasyPanel](docs/easypanel-configuracao.md). Ele descreve banco, aplicação, variáveis, domínio e verificações. Para backups diários, retenção de 30 dias, recuperação e release, consulte o [roteiro operacional](docs/operacao-piloto.md); a issue #16 continua aberta até o aceite operacional.
 
 ---
 
