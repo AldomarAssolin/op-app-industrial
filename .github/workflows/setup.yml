@@ -65,7 +65,7 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:18000/health/
           curl --fail --silent http://127.0.0.1:18000/ > /tmp/op-app-public-home.html
-          rg -q 'EXEMPLO FICTÍCIO' /tmp/op-app-public-home.html
+          python -c "from pathlib import Path; assert 'EXEMPLO FICTÍCIO' in Path('/tmp/op-app-public-home.html').read_text()"
           curl --fail --silent http://127.0.0.1:18000/integracoes/backup/ > /dev/null
           curl --fail --silent http://127.0.0.1:18000/privacidade/ > /dev/null
           curl --fail --silent http://127.0.0.1:18000/admin/login/ > /dev/null
