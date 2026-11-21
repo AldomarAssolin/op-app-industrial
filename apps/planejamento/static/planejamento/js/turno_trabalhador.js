@@ -9,7 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
     aviso.setAttribute('role', 'status');
     trabalhador.after(aviso);
     let versao = 0;
-    data.addEventListener('change', async () => {
+    let ultimaReferencia = null;
+    const atualizar = async () => {
+        if (data.value === ultimaReferencia) return;
+        ultimaReferencia = data.value;
         const atual = ++versao;
         const url = new URL(window.location.href);
         url.searchParams.set(nomeData, data.value);
@@ -28,7 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
             trabalhador.dispatchEvent(new Event('change', {bubbles: true}));
             aviso.textContent = ' Turnos atualizados para a data informada.';
         } catch (erro) {
-            if (atual === versao) aviso.textContent = ' Não foi possível atualizar os turnos. Confira a data e recarregue o formulário antes de continuar.';
+            if (atual === versao) {
+                ultimaReferencia = null;
+                aviso.textContent = ' Não foi possível atualizar os turnos. Confira a data e recarregue o formulário antes de continuar.';
+            }
         }
+    };
+    data.addEventListener('change', atualizar);
+    // DateTimeShortcuts altera .value e devolve o foco sem emitir change.
+    data.addEventListener('focus', atualizar);
+    trabalhador.addEventListener('focus', atualizar);
+    document.addEventListener('click', evento => {
+        if (evento.target.closest('.datetimeshortcuts, .calendarbox')) atualizar();
     });
+    // Também cobre datas preenchidas por GET ou restauradas pelo navegador.
+    if (data.value) atualizar();
 });
