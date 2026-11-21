@@ -5,10 +5,11 @@ preserva os blocos do Django e acrescenta o link “Voltar à área de trabalho�
 identificação do produto. O link usa a mesma sessão e aponta para `/app/`; não aparece
 no login ou em popups sem cabeçalho. A identificação do site é configurada no AdminSite.
 
-Somente a home principal recebe a classe `op-admin-home`. Acima de 1024 px, seu conteúdo
+A home principal recebe a classe `op-admin-home`. Os índices de apps (incluindo
+Organização e Planejamento) recebem `op-admin-app-index`. Acima de 1024 px, seu conteúdo
 usa grid com cadastros e Ações recentes, largura fluida limitada a 1280 px e margens
-simétricas. Não usa o float/margem negativa do sidebar nessa largura. Índices por app,
-listagens e formulários não recebem essa distribuição. Abaixo desse breakpoint, fica
+simétricas. Não usa o float/margem negativa do sidebar nessa largura. Índices por app são centralizados em uma coluna, limitada a 960 px, pois não têm
+Ações recentes. Listagens e formulários não recebem essas alterações de distribuição. Abaixo desse breakpoint, fica
 valendo o layout responsivo nativo; não há altura fixa.
 
 O tema escuro usa cinza azulado, superfícies distintas e links menos saturados. A paleta
@@ -33,6 +34,8 @@ substituem inspeção do estilo computado, de todos os estados ou avaliação vi
 
 - Conferir home em 1440 e 1920 px: conjunto centralizado e ações alinhadas, sem excesso
   de espaço entre nome e botões; testar também pouco ou nenhum histórico recente.
+- Conferir também `/admin/organizacao/` e `/admin/planejamento/` em telas grandes:
+  coluna centralizada sem espaço reservado para Ações recentes.
 - Conferir 390 px, largura intermediária e zoom: cabeçalho/link de retorno sem cortes;
   home utilizável e comportamento anterior de listagens/formulários preservado.
 - Conferir claro, escuro e automático (preferência do sistema clara e escura), incluindo
@@ -44,3 +47,10 @@ substituem inspeção do estilo computado, de todos os estados ou avaliação vi
 Não há migração, variável de ambiente nova ou alteração de permissões. O deploy precisa
 incluir os templates do projeto e executar collectstatic, como já previsto na imagem.
 Nenhum deploy ou aceite visual é declarado por este documento.
+
+## Complemento do aceite
+
+Manex aprovou visualmente a implementação inicial e identificou o mesmo problema nos
+índices Organização e Planejamento. O ajuste foi ampliado a esses índices; a conferência
+visual desse complemento permanece pendente. O teste de integração cobre os dois
+endereços e verifica que listagens/formulários não recebem a classe dos índices.

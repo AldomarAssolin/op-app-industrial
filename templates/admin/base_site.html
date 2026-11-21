@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="{% static 'planejamento/css/admin.css' %}">
 {% endblock %}
 
-{% block bodyclass %}{{ block.super }}{% if request.resolver_match.url_name == 'index' %} op-admin-home{% endif %}{% endblock %}
+{% block bodyclass %}{{ block.super }}{% if request.resolver_match.url_name == 'index' %} op-admin-home{% elif request.resolver_match.url_name == 'app_list' %} op-admin-app-index{% endif %}{% endblock %}
 
 {% block branding %}
   {{ block.super }}

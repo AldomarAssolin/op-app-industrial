@@ -16,6 +16,7 @@ class ApresentacaoAdminTests(TestCase):
         self.client.force_login(self.usuario)
         for nome, args in (('admin:index', []),
                            ('admin:app_list', ['organizacao']),
+                           ('admin:app_list', ['planejamento']),
                            ('admin:organizacao_setor_changelist', []),
                            ('admin:organizacao_setor_change', [self.setor.pk]),
                            ('admin:password_change', [])):
@@ -33,6 +34,11 @@ class ApresentacaoAdminTests(TestCase):
                     self.assertContains(r, 'id="recent-actions-module"')
                 else:
                     self.assertNotContains(r, 'op-admin-home')
+                if nome == 'admin:app_list':
+                    self.assertContains(r, 'op-admin-app-index')
+                    self.assertNotContains(r, 'id="recent-actions-module"')
+                else:
+                    self.assertNotContains(r, 'op-admin-app-index')
         self.assertEqual(self.client.get(reverse('entrada_operacional')).status_code, 200)
         self.assertEqual(self.client.session['_auth_user_id'], str(self.usuario.pk))
 
