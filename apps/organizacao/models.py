@@ -58,6 +58,15 @@ class Funcao(CadastroNomeado):
 
 
 class Trabalhador(CadastroNomeado):
+    def turno_em(self, dia):
+        mudanca = self.mudancas_turno.filter(vigencia__lte=dia).select_related('turno_novo').order_by('-vigencia', '-pk').first()
+        return mudanca.turno_novo if mudanca else None
+
+    @property
+    def turno_habitual(self):
+        from .turnos import data_operacional_hoje
+        return self.turno_em(data_operacional_hoje())
+
     setor_principal = models.ForeignKey(
         Setor, verbose_name="setor principal", on_delete=models.PROTECT,
         related_name="trabalhadores",
@@ -90,3 +99,63 @@ class UsuarioSetor(models.Model):
 
     def __str__(self):
         return f"{self.usuario} | {self.setor}"
+
+
+class Turno(models.Model):
+    class Codigo(models.TextChoices):
+        T1 = 'T1', 'T1'
+        T2 = 'T2', 'T2'
+        T3 = 'T3', 'T3'
+
+    codigo = models.CharField('turno', max_length=2, primary_key=True, choices=Codigo.choices)
+    inicio_referencia = models.TimeField('início de referência', null=True, blank=True)
+    fim_referencia = models.TimeField('fim de referência', null=True, blank=True)
+    horario_aproximado = models.BooleanField('horário aproximado', default=False)
+    ativo = models.BooleanField('ativo', default=True)
+
+    class Meta:
+        ordering = ('codigo',)
+        constraints = [models.CheckConstraint(condition=models.Q(codigo__in=('T1', 'T2', 'T3')),
+                                             name='turno_codigo_valido')]
+
+    def __str__(self):
+        return self.codigo
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        obj = super().from_db(db, field_names, values)
+        obj._codigo_original = obj.pk
+        return obj
+
+    def save(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        if getattr(self, '_codigo_original', self.pk) != self.pk:
+            raise ValidationError('A identificação do turno não pode ser alterada.')
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Inative o turno; não exclua sua referência.')
+
+
+class MudancaTurno(models.Model):
+    trabalhador = models.ForeignKey(Trabalhador, on_delete=models.PROTECT, related_name='mudancas_turno')
+    vigencia = models.DateField('data de vigência')
+    turno_anterior = models.ForeignKey(Turno, null=True, blank=True, on_delete=models.PROTECT, related_name='+')
+    turno_novo = models.ForeignKey(Turno, on_delete=models.PROTECT, related_name='+')
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    alocacoes_transferidas = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ('vigencia', 'pk')
+        constraints = [models.UniqueConstraint(fields=('trabalhador', 'vigencia'), name='mudanca_turno_vigencia_unica')]
+
+    def save(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Use a revisão e confirmação de troca de turno.')
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('O histórico de turno deve ser preservado.')

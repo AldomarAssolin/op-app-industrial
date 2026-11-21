@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils import timezone
@@ -17,9 +18,14 @@ from .services import montar_quadro_semanal
 @require_GET
 def quadro_semanal(request):
     parametros = request.GET.copy()
-    parametros.setdefault("semana", timezone.localdate().isoformat())
+    if settings.OP_APP_TURNOS_ENABLED:
+        from apps.organizacao.turnos import data_operacional_hoje
+        hoje = data_operacional_hoje()
+    else:
+        hoje = timezone.localdate()
+    parametros.setdefault("semana", hoje.isoformat())
     form = QuadroSemanalForm(parametros, ator=request.user)
-    contexto = {"form": form, **navegacao_operacional(request.user)}
+    contexto = {"turnos_habilitados": settings.OP_APP_TURNOS_ENABLED, "form": form, **navegacao_operacional(request.user)}
     if not form.is_valid():
         return render(request, "planejamento/quadro_semanal.html", contexto, status=400)
     dados = form.cleaned_data

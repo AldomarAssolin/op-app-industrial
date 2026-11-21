@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -59,6 +61,15 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     readonly_fields = ("criado_por", "alterado_por", "criado_em", "alterado_em")
     change_list_template = "admin/planejamento/alocacao/change_list.html"
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'turno' and settings.OP_APP_TURNOS_ENABLED:
+            from apps.organizacao.models import Turno
+            kwargs.update(queryset=Turno.objects.filter(ativo=True), required=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def get_exclude(self, request, obj=None):
+        return ('turno',) if not settings.OP_APP_TURNOS_ENABLED else ()
+
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         try:
             return super().changeform_view(request, object_id, form_url, extra_context)
@@ -100,6 +111,7 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
                 registros = alocar_dias(
                     ator=request.user, trabalhador=dados["trabalhador"], tarefa=dados["tarefa"],
                     datas=dados["datas"], funcao_desempenhada=dados["funcao_desempenhada"],
+                    turno=dados.get("turno"),
                     observacao=dados["observacao"],
                 )
             except ValidationError as erro:
@@ -121,9 +133,11 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     def delete_model(self, request, obj):
         obj.delete(ator=request.user)
 
+    @transaction.atomic
     def delete_queryset(self, request, queryset):
         exigir_permissao(request.user, "delete")
         queryset = filtrar_escopo(request.user, queryset)
         for obj in queryset:
             exigir_escopo_objeto(request.user, obj)
-        queryset.delete()
+        for obj in queryset:
+            obj.delete(ator=request.user)

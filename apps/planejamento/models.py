@@ -146,6 +146,8 @@ def exigir_permissao(ator, operacao):
 
 
 class Alocacao(models.Model):
+    turno = models.ForeignKey('organizacao.Turno', verbose_name='turno', null=True, blank=True,
+                              on_delete=models.PROTECT, related_name='alocacoes')
     trabalhador = models.ForeignKey("organizacao.Trabalhador", on_delete=models.PROTECT,
                                     related_name="alocacoes", verbose_name="trabalhador")
     tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name="alocacoes")
@@ -202,7 +204,7 @@ class Alocacao(models.Model):
         with transaction.atomic():
             anterior = type(self).objects.filter(pk=self.pk).first() if self.pk else None
             if anterior and update_fields is not None:
-                for campo in ("trabalhador", "tarefa", "data", "funcao_desempenhada", "observacao"):
+                for campo in ("trabalhador", "tarefa", "data", "funcao_desempenhada", "observacao", "turno"):
                     field = self._meta.get_field(campo)
                     if campo not in update_fields and field.attname not in update_fields:
                         setattr(self, field.attname, getattr(anterior, field.attname))
@@ -215,7 +217,7 @@ class Alocacao(models.Model):
             if anterior and atual is None:
                 raise ValidationError("A alocação foi removida. Recarregue a página.")
             if anterior and atual and any(getattr(anterior, campo) != getattr(atual, campo)
-                                         for campo in ("tarefa_id", "trabalhador_id", "data")):
+                                         for campo in ("tarefa_id", "trabalhador_id", "data", "turno_id")):
                 raise ValidationError("A alocação mudou durante a operação. Recarregue e tente novamente.")
             if anterior:
                 exigir_permissao(ator, "change")
@@ -227,14 +229,61 @@ class Alocacao(models.Model):
             if anterior:
                 exigir_escopo_objeto(ator, anterior)
             self.alterado_por = ator
+            if not settings.OP_APP_TURNOS_ENABLED:
+                if self.turno_id or (anterior and anterior.turno_id):
+                    raise ValidationError('A operação com turnos ainda não está habilitada.')
+            else:
+                trabalhador_atual = Trabalhador.objects.get(pk=self.trabalhador_id)
+                if not self.turno_id:
+                    raise ValidationError({'turno': 'Informe o turno antes de confirmar a alocação.'})
+                from apps.organizacao.models import Turno
+                if not Turno.objects.filter(pk=self.turno_id, ativo=True).exists():
+                    raise ValidationError({'turno': 'Selecione um turno ativo.'})
+                habitual = trabalhador_atual.turno_em(self.data)
+                if habitual is None or habitual.pk != self.turno_id:
+                    raise ValidationError({'turno': 'Turno diferente do habitual vigente nessa data. Procure o Coordenador.'})
+                if type(self).objects.filter(trabalhador_id=self.trabalhador_id, data=self.data).exclude(pk=self.pk).exclude(turno_id=self.turno_id).exists():
+                    raise ValidationError('Há planejamento em outro turno ou sem classificação para essa pessoa e data. Procure o Coordenador.')
             self.full_clean()
             if update_fields is not None:
                 kwargs["update_fields"] = set(update_fields) | {"alterado_por", "alterado_em"}
             super().save(*args, **kwargs)
+            if settings.OP_APP_TURNOS_ENABLED and (anterior is None or anterior.turno_id != self.turno_id):
+                HistoricoTurnoAlocacao.objects.create(alocacao=self, trabalhador_id=self.trabalhador_id,
+                    tarefa_id=self.tarefa_id, data=self.data, turno_anterior_id=anterior.turno_id if anterior else None,
+                    turno_novo_id=self.turno_id, registrado_por=ator)
 
     def delete(self, *args, ator=None, **kwargs):
         exigir_permissao(ator, "delete")
         with transaction.atomic():
+            snapshot = type(self).objects.get(pk=self.pk)
+            list(Tarefa.objects.select_for_update().filter(pk=snapshot.tarefa_id))
+            from apps.organizacao.models import Trabalhador
+            list(Trabalhador.objects.select_for_update().filter(pk=snapshot.trabalhador_id))
             atual = type(self).objects.select_for_update().get(pk=self.pk)
+            if (atual.tarefa_id, atual.trabalhador_id) != (snapshot.tarefa_id, snapshot.trabalhador_id):
+                raise ValidationError('A alocação mudou. Recarregue antes de remover.')
             exigir_escopo_objeto(ator, atual)
             return super().delete(*args, **kwargs)
+
+
+class HistoricoTurnoAlocacao(models.Model):
+    alocacao = models.ForeignKey(Alocacao, null=True, on_delete=models.SET_NULL, related_name='historico_turno')
+    trabalhador = models.ForeignKey('organizacao.Trabalhador', on_delete=models.PROTECT, related_name='+')
+    tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name='+')
+    data = models.DateField('data operacional')
+    turno_anterior = models.ForeignKey('organizacao.Turno', null=True, blank=True, on_delete=models.PROTECT, related_name='+')
+    turno_novo = models.ForeignKey('organizacao.Turno', on_delete=models.PROTECT, related_name='+')
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    registrado_em = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError('O histórico de turno não pode ser reescrito.')
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError('O histórico de turno deve ser preservado.')
+
+    class Meta:
+        ordering = ('registrado_em', 'pk')

@@ -1,14 +1,16 @@
 from datetime import timedelta
 
 from django import forms
+from django.conf import settings
 
-from apps.organizacao.models import Funcao, Trabalhador
+from apps.organizacao.models import Funcao, Trabalhador, Turno
 from .models import Tarefa
 from .services import setores_permitidos, semana_de
 from apps.organizacao.autorizacao import filtrar_escopo
 
 
 class AlocacaoMultidiaForm(forms.Form):
+    turno = forms.ModelChoiceField(label='Turno', queryset=Turno.objects.filter(ativo=True))
     trabalhador = forms.ModelChoiceField(queryset=Trabalhador.objects.filter(ativo=True)
                                          .select_related("setor_principal", "funcao_principal"))
     tarefa = forms.ModelChoiceField(queryset=Tarefa.objects.filter(
@@ -26,6 +28,8 @@ class AlocacaoMultidiaForm(forms.Form):
 
     def __init__(self, *args, ator=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if not settings.OP_APP_TURNOS_ENABLED:
+            self.fields.pop('turno')
         for campo in ("trabalhador", "tarefa"):
             self.fields[campo].queryset = filtrar_escopo(ator, self.fields[campo].queryset)
 

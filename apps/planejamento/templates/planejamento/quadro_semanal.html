@@ -78,7 +78,7 @@
             <tbody>{% for linha in linhas %}<tr>
               <th scope="row">{{ linha.trabalhador.nome }}<small>ID {{ linha.trabalhador.pk }}</small></th>
               <td>{{ linha.funcao.nome }}</td>
-              <td>{{ linha.tarefa.titulo }}<small>{{ linha.tarefa.setor.nome }} · {{ linha.tarefa.get_status_display }}</small>
+              <td>{{ linha.tarefa.titulo }}{% if turnos_habilitados %}<small>Turno: {{ linha.turno|default:"Turno não informado" }} · Data do início do turno</small>{% endif %}<small>{{ linha.tarefa.setor.nome }} · {{ linha.tarefa.get_status_display }}</small>
                 <small>Previsto: {{ linha.tarefa.inicio_previsto|date:"d/m/Y" }} a {{ linha.tarefa.fim_previsto|date:"d/m/Y" }}</small></td>
               {% for celula in linha.celulas %}<td class="day{% if celula.alocacao %} allocated{% endif %}">
                 {% if celula.alocacao %}<span class="mark">Alocado</span>{% if celula.alocacao.observacao %}<small>{{ celula.alocacao.observacao }}</small>{% endif %}
