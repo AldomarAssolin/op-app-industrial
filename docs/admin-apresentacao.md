@@ -1,0 +1,56 @@
+# Ajustes do Admin — issue #32 (24.1)
+
+O Admin continua nativo. Uma extensão de `admin/base_site.html` carrega CSS próprio,
+preserva os blocos do Django e acrescenta o link “Voltar à área de trabalho” junto à
+identificação do produto. O link usa a mesma sessão e aponta para `/app/`; não aparece
+no login ou em popups sem cabeçalho. A identificação do site é configurada no AdminSite.
+
+A home principal recebe a classe `op-admin-home`. Os índices de apps (incluindo
+Organização e Planejamento) recebem `op-admin-app-index`. Acima de 1024 px, seu conteúdo
+usa grid com cadastros e Ações recentes, largura fluida limitada a 1280 px e margens
+simétricas. Não usa o float/margem negativa do sidebar nessa largura. Índices por app são centralizados em uma coluna, limitada a 960 px, pois não têm
+Ações recentes. Listagens e formulários não recebem essas alterações de distribuição. Abaixo desse breakpoint, fica
+valendo o layout responsivo nativo; não há altura fixa.
+
+O tema escuro usa cinza azulado, superfícies distintas e links menos saturados. A paleta
+é aplicada a `data-theme=dark` e ao modo automático quando o sistema prefere escuro.
+O claro explícito permanece com a paleta nativa mesmo nesse sistema. O seletor e o
+script de tema do Django permanecem intactos. Não há dependência ou tema de terceiros.
+
+## Verificação executada
+
+40 testes relacionados passaram localmente com SQLite, incluindo carregamento da
+extensão na home, índice de app, listagem, formulário e troca de senha; link de retorno
+na mesma sessão; preservação do login, popups, scripts de tema, estáticos e autorização.
+`collectstatic` e `git diff --check` passaram. A suíte PostgreSQL fica a cargo do CI.
+
+Cálculo sRGB dos pares definidos: texto/fundo 12,87:1; texto secundário/superfície 7,93:1;
+link/superfície 7,67:1; link/linha selecionada 5,28:1; link visitado/superfície 8,28:1;
+cabeçalho 8,89:1; botão 7,72:1 e hover 5,92:1; borda/superfície 3,26:1. Os pares de
+texto das mensagens de sucesso/aviso/erro também superam 4,5:1. Estes cálculos não
+substituem inspeção do estilo computado, de todos os estados ou avaliação visual.
+
+## Aceite visual pendente
+
+- Conferir home em 1440 e 1920 px: conjunto centralizado e ações alinhadas, sem excesso
+  de espaço entre nome e botões; testar também pouco ou nenhum histórico recente.
+- Conferir também `/admin/organizacao/` e `/admin/planejamento/` em telas grandes:
+  coluna centralizada sem espaço reservado para Ações recentes.
+- Conferir 390 px, largura intermediária e zoom: cabeçalho/link de retorno sem cortes;
+  home utilizável e comportamento anterior de listagens/formulários preservado.
+- Conferir claro, escuro e automático (preferência do sistema clara e escura), incluindo
+  troca após recarregar. O claro explícito deve prevalecer sobre o sistema escuro.
+- Conferir links/hover/visitados, seleção, mensagens, inputs e ações de formulário.
+- Navegar por teclado, conferir foco visível e retorno a `/app/` a partir de home,
+  listagem, edição e troca de senha.
+
+Não há migração, variável de ambiente nova ou alteração de permissões. O deploy precisa
+incluir os templates do projeto e executar collectstatic, como já previsto na imagem.
+Nenhum deploy ou aceite visual é declarado por este documento.
+
+## Complemento do aceite
+
+Manex aprovou visualmente a implementação inicial e identificou o mesmo problema nos
+índices Organização e Planejamento. O ajuste foi ampliado a esses índices; a conferência
+visual desse complemento permanece pendente. O teste de integração cobre os dois
+endereços e verifica que listagens/formulários não recebem a classe dos índices.
