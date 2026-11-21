@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
+from .orientacao import proximo_passo
 from .forms import AlocacaoMultidiaForm
 from .models import Alocacao, HistoricoTarefa, Tarefa, exigir_permissao
 from .services import alocar_dias
@@ -111,6 +112,7 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
         return TemplateResponse(request, "admin/planejamento/alocacao/varios_dias.html", {
             **self.admin_site.each_context(request), "opts": self.model._meta,
             "title": "Alocar trabalhador em vários dias", "form": form,
+            "orientacao": proximo_passo(request.user),
         })
 
     def save_model(self, request, obj, form, change):

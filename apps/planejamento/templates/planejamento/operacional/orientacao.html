@@ -1,0 +1,9 @@
+{% if orientacao %}
+<section class="op-orientacao" aria-label="Próximo passo">
+  <h2>{{ orientacao.titulo }}</h2>
+  <p>{{ orientacao.mensagem }}</p>
+  {% if orientacao.ajuda %}<p>{{ orientacao.ajuda }}</p>{% endif %}
+  {% if orientacao.url %}<p><a href="{{ orientacao.url }}">{{ orientacao.acao }}</a></p>{% endif %}
+  {% if orientacao.estado and orientacao.estado != "pronto" %}<p class="op-sequencia">Sequência: setor e funções → trabalhadores → tarefa → alocações → quadro semanal.</p>{% endif %}
+</section>
+{% endif %}

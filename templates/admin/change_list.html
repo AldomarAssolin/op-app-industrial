@@ -1,0 +1,6 @@
+{% extends "admin/change_list.html" %}
+{% block content %}
+  {% if lista_vazia_mensagem %}<p>{{ lista_vazia_mensagem }}</p>{% endif %}
+  {% include "planejamento/operacional/orientacao.html" %}
+  {{ block.super }}
+{% endblock %}

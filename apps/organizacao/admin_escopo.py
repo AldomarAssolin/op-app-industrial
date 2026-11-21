@@ -4,6 +4,30 @@ from .autorizacao import exigir_escopo_objeto, exigir_operacao, filtrar_escopo
 
 
 class EscopoAdminMixin:
+    def changelist_view(self, request, extra_context=None):
+        resposta = super().changelist_view(request, extra_context=extra_context)
+        contexto = getattr(resposta, 'context_data', None)
+        if (contexto and 'cl' in contexto and contexto['cl'].result_count == 0
+                and self.model._meta.label_lower in {
+                    'organizacao.trabalhador', 'planejamento.tarefa', 'planejamento.alocacao'}):
+            from django.urls import reverse
+            from apps.planejamento.orientacao import proximo_passo
+            if self.get_queryset(request).exists():
+                contexto['orientacao'] = {
+                    'titulo': 'Nenhum resultado para estes filtros',
+                    'mensagem': 'Há registros nos seus setores, mas nenhum corresponde à busca ou aos filtros atuais.',
+                    'url': reverse(f'admin:{self.model._meta.app_label}_{self.model._meta.model_name}_changelist'),
+                    'acao': 'Limpar busca e filtros',
+                }
+            else:
+                contexto['lista_vazia_mensagem'] = {
+                    'trabalhador': 'Ainda não há trabalhadores cadastrados nos seus setores.',
+                    'tarefa': 'Ainda não há tarefas cadastradas nos seus setores.',
+                    'alocacao': 'Ainda não há alocações nos seus setores.',
+                }[self.model._meta.model_name]
+                contexto['orientacao'] = proximo_passo(request.user)
+        return resposta
+
     def get_queryset(self, request):
         return filtrar_escopo(request.user, super().get_queryset(request))
 

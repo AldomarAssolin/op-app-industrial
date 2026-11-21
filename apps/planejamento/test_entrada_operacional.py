@@ -72,7 +72,8 @@ class EntradaOperacionalTests(TestCase):
                 else:
                     self.assertNotContains(r, reverse('admin:organizacao_trabalhador_add'))
                 self.assertNotContains(r, reverse('admin:organizacao_setor_add'))
-                self.assertNotContains(r, reverse('admin:organizacao_funcao_add'))
+                if grupo != 'Administrador':
+                    self.assertNotContains(r, reverse('admin:organizacao_funcao_add'))
 
     def test_consulta_com_permissao_isolada_nao_recebe_acao_de_gravacao(self):
         user = self.usuarios['Consulta']
