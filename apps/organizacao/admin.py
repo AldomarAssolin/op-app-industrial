@@ -297,6 +297,9 @@ class HistoricoAcessoTurnoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     def has_module_permission(self, request):
         return settings.OP_APP_TURNOS_ENABLED and (request.user.is_superuser or request.user.groups.filter(name=COORDENADOR).exists())
 
+    def has_view_permission(self, request, obj=None):
+        return self.has_module_permission(request) and super().has_view_permission(request, obj)
+
     def has_add_permission(self, request):
         return False
 
@@ -314,6 +317,9 @@ class MudancaTurnoAdmin(EscopoAdminMixin, admin.ModelAdmin):
 
     def has_module_permission(self, request):
         return settings.OP_APP_TURNOS_ENABLED and (request.user.is_superuser or request.user.groups.filter(name=COORDENADOR).exists())
+
+    def has_view_permission(self, request, obj=None):
+        return self.has_module_permission(request) and super().has_view_permission(request, obj)
 
     def has_add_permission(self, request):
         return False

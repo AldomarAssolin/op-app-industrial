@@ -371,6 +371,14 @@ class AutorizacaoTurnosTests(TestCase):
             self.alloc(self.w1, self.f1, self.l1, self.t1, self.hoje + timedelta(days=1))
         self.assertEqual(Alocacao.objects.count(), antes)
 
+    @override_settings(OP_APP_TURNOS_ENABLED=False)
+    def test_desabilitar_turnos_fecha_urls_dos_novos_historicos(self):
+        self.client.force_login(self.c1)
+        for modelo in ('historicoacessoturno', 'mudancaturno'):
+            with self.subTest(modelo=modelo):
+                resposta = self.client.get(reverse(f'admin:organizacao_{modelo}_changelist'))
+                self.assertEqual(resposta.status_code, 403)
+
     def test_csrf_protege_gestao_de_vinculos(self):
         from django.test import Client
         cliente = Client(enforce_csrf_checks=True)
