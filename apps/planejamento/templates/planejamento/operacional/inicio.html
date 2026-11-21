@@ -1,0 +1,20 @@
+{% extends "planejamento/operacional/base.html" %}
+{% block content %}
+<h1>Seu trabalho nesta semana</h1>
+<p class="intro">Consulte as alocações e organize as atividades dos setores autorizados para sua conta.</p>
+{% if setores_permitidos %}
+<section aria-labelledby="seus-setores">
+  <h2 id="seus-setores">Seus setores</h2>
+  <ul class="sector-list">{% for setor in setores_permitidos %}<li>{{ setor.nome }}</li>{% endfor %}</ul>
+</section>
+<div class="work-actions">
+  {% if pode_ver_semana %}<section class="work-card"><h2>Ver semana</h2><p>Confira trabalhadores, funções e tarefas por dia e setor.</p><a href="{% url 'planejamento:quadro_semanal' %}">Abrir quadro semanal</a></section>{% endif %}
+  {% if pode_planejar or pode_ver_tarefas %}<section class="work-card"><h2>{% if pode_planejar %}Planejar{% else %}Consultar tarefas{% endif %}</h2><p>As tarefas e alocações ainda são acessadas pelo Admin nesta etapa.</p>{% if pode_planejar %}<a href="{% url 'admin:planejamento_alocacao_changelist' %}">Organizar alocações no Admin</a>{% endif %}{% if pode_ver_tarefas %}<a href="{% url 'admin:planejamento_tarefa_changelist' %}">Abrir tarefas no Admin</a>{% endif %}</section>{% endif %}
+  {% if pode_ver_equipe %}<section class="work-card"><h2>Equipe</h2><p>Consulte os trabalhadores dos seus setores no Admin.</p><a href="{% url 'admin:organizacao_trabalhador_changelist' %}">Consultar equipe no Admin</a>{% if pode_cadastrar_trabalhador %}<a href="{% url 'admin:organizacao_trabalhador_add' %}">Cadastrar trabalhador no Admin</a>{% endif %}</section>{% endif %}
+</div>
+{% if not pode_ver_semana and not pode_ver_tarefas and not pode_ver_equipe and not pode_planejar %}<p class="notice">Sua conta ainda não tem ações disponíveis. Peça ao responsável pelo OP-APP para conferir suas permissões.</p>{% endif %}
+{% else %}
+<div class="notice"><h2>Nenhum setor autorizado</h2><p>Peça ao responsável pelo OP-APP para conferir os vínculos de setor da sua conta. Após o ajuste, entre novamente nesta página.</p></div>
+{% endif %}
+{% if request.user.is_staff %}<p><a href="{% url 'admin:index' %}">Abrir Admin — configuração e apoio conforme suas permissões</a></p>{% endif %}
+{% endblock %}

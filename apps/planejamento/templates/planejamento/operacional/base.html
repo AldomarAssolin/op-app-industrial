@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Área de trabalho | OP-APP{% endblock %}</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.6 system-ui, sans-serif; color: #182d3c; background: #f3f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    a { color: #125d89; text-underline-offset: .2em; }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid #cf7800; outline-offset: 4px; }
+    .skip { position: absolute; top: -100px; left: 16px; background: white; padding: 12px; z-index: 5; }
+    .skip:focus { top: 10px; }
+    .app-header { background: #142f40; color: white; padding: 18px 24px; }
+    .app-header a { color: white; }
+    .app-bar { max-width: 1400px; margin: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+    .app-brand { font-weight: 750; font-size: 1.2rem; text-decoration: none; }
+    .app-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; }
+    .app-session { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; overflow-wrap: anywhere; }
+    .app-session form { margin: 0; display: inline; }
+    .app-session button { color: white; background: transparent; border: 1px solid #a7becd; border-radius: 5px; padding: 7px 14px; cursor: pointer; font: inherit; }
+    main { max-width: 1448px; margin: auto; padding: 32px 24px; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-top: 0; }
+    .intro { color: #4f6473; }
+    .work-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; margin-block: 28px; }
+    .work-card, .notice { padding: 24px; background: white; border: 1px solid #cfdae2; border-radius: 8px; }
+    .work-card h2 { margin-top: 0; font-size: 1.25rem; }
+    .work-card p { color: #4f6473; }
+    .work-card a { display: inline-block; margin: 6px 16px 6px 0; }
+    .sector-list { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-left: 22px; }
+    .login-panel { max-width: 440px; margin: 16px auto; padding: 26px; background: white; border: 1px solid #cfdae2; border-radius: 8px; }
+    .login-panel label { display: block; margin-top: 16px; font-weight: 600; }
+    .login-panel input { width: 100%; font: inherit; padding: 10px; border: 1px solid #8ba3b4; border-radius: 5px; }
+    .login-panel button { margin-top: 22px; background: #165e85; color: white; font: inherit; padding: 10px 20px; border: 0; border-radius: 5px; cursor: pointer; }
+    .errorlist { color: #9a1b25; }
+    @media (max-width: 600px) { main { padding: 24px 16px; } .app-header { padding: 16px; } .app-bar { align-items: start; } }
+    @media print { .app-nav, .app-session, .skip { display: none; } }
+  </style>
+  {% block extrahead %}{% endblock %}
+</head>
+<body>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+  <header class="app-header">
+    <div class="app-bar">
+      <a class="app-brand" href="{% url 'entrada_operacional' %}">OP-APP</a>
+      {% if request.user.is_authenticated %}
+      <nav class="app-nav" aria-label="Navegação operacional">
+        <a href="{% url 'entrada_operacional' %}">Início</a>
+        {% if pode_ver_semana %}<a href="{% url 'planejamento:quadro_semanal' %}">Ver semana</a>{% endif %}
+        {% if pode_planejar %}<a href="{% url 'admin:planejamento_alocacao_changelist' %}">Planejar (Admin)</a>{% endif %}
+        {% if pode_ver_equipe %}<a href="{% url 'admin:organizacao_trabalhador_changelist' %}">Equipe (Admin)</a>{% endif %}
+      </nav>
+      <div class="app-session">
+        <span>Conectado como {{ request.user.get_username }}</span>
+        <form method="post" action="{% url 'logout_operacional' %}">{% csrf_token %}<button type="submit">Sair</button></form>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+  <main id="conteudo" tabindex="-1">{% block content %}{% endblock %}</main>
+</body>
+</html>

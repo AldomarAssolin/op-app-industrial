@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from .health import health
+from apps.planejamento.views_operacionais import entrada, LoginOperacional, LogoutOperacional
 from apps.planejamento.views_publicas import backup, inicio, privacidade
 
 urlpatterns = [
@@ -24,6 +25,9 @@ urlpatterns = [
     path('privacidade/', privacidade, name='privacidade'),
     path('integracoes/backup/', backup, name='integracao_backup'),
     path('health/', health, name='health'),
+    path('app/', entrada, name='entrada_operacional'),
+    path('conta/entrar/', LoginOperacional.as_view(), name='login_operacional'),
+    path('conta/sair/', LogoutOperacional.as_view(), name='logout_operacional'),
     path('admin/', admin.site.urls),
     path('planejamento/', include('apps.planejamento.urls')),
 ]

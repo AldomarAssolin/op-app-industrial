@@ -5,17 +5,18 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 
+from .views_operacionais import navegacao_operacional
 from .forms import QuadroSemanalForm
 from .services import montar_quadro_semanal
 
 
-@login_required(login_url="admin:login")
+@login_required
 @require_GET
 def quadro_semanal(request):
     parametros = request.GET.copy()
     parametros.setdefault("semana", timezone.localdate().isoformat())
     form = QuadroSemanalForm(parametros, ator=request.user)
-    contexto = {"form": form}
+    contexto = {"form": form, **navegacao_operacional(request.user)}
     if not form.is_valid():
         return render(request, "planejamento/quadro_semanal.html", contexto, status=400)
     dados = form.cleaned_data

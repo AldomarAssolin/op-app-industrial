@@ -185,3 +185,7 @@ OP_APP_PUBLIC_PAGES_ENABLED = os.getenv("OP_APP_PUBLIC_PAGES_ENABLED", "False").
 OP_APP_SUPPORT_EMAIL = os.getenv("OP_APP_SUPPORT_EMAIL", "").strip()
 # Opt-in separado: permite atualizar o Branding antes de substituir a home antiga.
 OP_APP_PRODUCT_HOME_ENABLED = os.getenv("OP_APP_PRODUCT_HOME_ENABLED", "False").lower() == "true"
+
+# Fluxo operacional; LoginView valida next contra o host e o protocolo atuais.
+LOGIN_URL = "login_operacional"
+LOGIN_REDIRECT_URL = "entrada_operacional"
