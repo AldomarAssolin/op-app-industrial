@@ -39,7 +39,7 @@ class PaginasPublicasTests(SimpleTestCase):
         self.assertEqual(self.client.get(reverse("health")).status_code, 200)
         resposta = self.client.get(reverse("planejamento:quadro_semanal"))
         self.assertEqual(resposta.status_code, 302)
-        self.assertIn(reverse("admin:login"), resposta["Location"])
+        self.assertIn(reverse("login_operacional"), resposta["Location"])
 
 
 @override_settings(OP_APP_PRODUCT_HOME_ENABLED=True)
@@ -50,7 +50,7 @@ class ApresentacaoProdutoTests(SimpleTestCase):
             resposta = self.client.get(reverse("inicio"))
             self.assertContains(resposta, "A semana organizada.")
             self.assertContains(resposta, "EXEMPLO FICTÍCIO")
-            self.assertContains(resposta, f'href="{reverse("admin:login")}"')
+            self.assertContains(resposta, f'href="{reverse("login_operacional")}"')
             self.assertNotContains(resposta, "OP-APP Backups")
             self.assertNotContains(resposta, "mailto:")
             self.assertEqual(self.client.get(reverse("privacidade")).status_code, 404)
@@ -80,7 +80,7 @@ class ApresentacaoProdutoTests(SimpleTestCase):
     def test_apresentacao_nao_amplia_acesso_e_paginas_so_aceitam_leitura(self):
         resposta = self.client.get(reverse("planejamento:quadro_semanal"))
         self.assertEqual(resposta.status_code, 302)
-        self.assertIn(reverse("admin:login"), resposta["Location"])
+        self.assertIn(reverse("login_operacional"), resposta["Location"])
         with self.settings(OP_APP_PUBLIC_PAGES_ENABLED=True, OP_APP_SUPPORT_EMAIL="suporte@example.com"):
             for nome in ("inicio", "privacidade", "integracao_backup"):
                 self.assertEqual(self.client.head(reverse(nome)).status_code, 200)

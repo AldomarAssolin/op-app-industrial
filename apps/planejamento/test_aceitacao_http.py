@@ -171,7 +171,7 @@ class AceitacaoHTTPTests(LiveServerTestCase):
         codigo, _, headers = self.requisicao(reverse("planejamento:quadro_semanal"),
                                              headers={"Cookie": "sessionid=" + sessao_antiga})
         self.assertEqual(codigo, 302)
-        self.assertIn(reverse("admin:login"), headers["Location"])
+        self.assertIn(reverse("login_operacional"), headers["Location"])
 
     def test_exclusao_de_alocacao_permitida_e_tarefa_protegida(self):
         self.entrar("lider")

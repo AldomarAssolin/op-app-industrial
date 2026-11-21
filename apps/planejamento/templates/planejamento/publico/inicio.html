@@ -8,7 +8,7 @@
         <h1 id="apresentacao">Sua equipe.<br>Suas tarefas.<br>A semana organizada.</h1>
         <p class="lead">Distribua trabalhadores entre as tarefas de produção e confira quem está alocado em cada dia, por semana e setor.</p>
         <div class="actions">
-          <a class="button" href="{% url 'admin:login' %}">Entrar no sistema <span aria-hidden="true">&nbsp;→</span></a>
+          <a class="button" href="{% url 'login_operacional' %}">Entrar no sistema <span aria-hidden="true">&nbsp;→</span></a>
           <a class="button secondary" href="#como-funciona">Conhecer o fluxo</a>
         </div>
         <p class="small-note">Acesso para usuários cadastrados pelo responsável da operação.</p>
@@ -53,6 +53,6 @@
   </section>
   <section class="wrap closing" aria-labelledby="acesso">
     <div><h2 id="acesso">Seu planejamento começa na equipe.</h2><p>Já tem acesso? Entre para consultar e organizar as atividades do seu setor.</p></div>
-    <a class="button" href="{% url 'admin:login' %}">Entrar no sistema <span aria-hidden="true">&nbsp;→</span></a>
+    <a class="button" href="{% url 'login_operacional' %}">Entrar no sistema <span aria-hidden="true">&nbsp;→</span></a>
   </section>
 {% endblock %}

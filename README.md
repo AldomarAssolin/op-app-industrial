@@ -295,6 +295,8 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 
 ## 11. Documentação
 
+A [entrada operacional](docs/entrada-operacional.md) reúne o fluxo de login, navegação por permissões e o roteiro de validação da issue #24.
+
 A evolução da apresentação pública está descrita em [docs/pagina-publica.md](docs/pagina-publica.md). Ela tem habilitação própria e transição do Branding em duas etapas; não substituir a página inicial cadastrada no OAuth antes de preparar o endereço específico da integração.
 
 As decisões de arquitetura, regras de negócio e guias técnicos serão mantidos em `docs/`. O README deve continuar sendo o ponto de entrada do projeto, sem acumular toda a especificação funcional.

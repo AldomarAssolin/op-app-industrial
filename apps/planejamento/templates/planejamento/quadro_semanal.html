@@ -1,9 +1,6 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quadro semanal | OP-APP</title>
+{% extends "planejamento/operacional/base.html" %}
+{% block title %}Quadro semanal | OP-APP{% endblock %}
+{% block extrahead %}
   <style>
     :root { color-scheme: light; font-family: system-ui, sans-serif; color: #182d3c; background: #f3f6f8; }
     * { box-sizing: border-box; }
@@ -54,13 +51,12 @@
       .mark, small { color: black; }
     }
   </style>
-</head>
-<body>
-  <header><strong>OP-APP</strong><p>Planejamento operacional industrial</p></header>
-  <main>
+
+{% endblock %}
+{% block content %}
     <h1>Quadro semanal</h1>
     <p class="intro">Trabalhadores, funções e tarefas organizados por dia.</p>
-    {% if request.user.is_staff %}<a class="admin-link" href="{% url 'admin:planejamento_alocacao_changelist' %}">Abrir alocações no Admin</a>{% endif %}
+    {% if pode_planejar %}<a class="admin-link" href="{% url 'admin:planejamento_alocacao_changelist' %}">Abrir alocações no Admin</a>{% endif %}
     <section class="filters" aria-label="Filtros do quadro">
       <form method="get">{{ form.as_p }}<button type="submit">Consultar semana</button></form>
     </section>
@@ -94,6 +90,4 @@
       {% else %}<div class="empty"><strong>Nenhuma alocação nesta semana.</strong><p>Não há registros para a semana e os setores permitidos selecionados.</p></div>{% endif %}
       <p class="note">Cada linha reúne trabalhador, função desempenhada e tarefa. Dias vazios não indicam disponibilidade. Alocação não representa jornada exclusiva nem contabiliza horas.</p>
     {% endif %}
-  </main>
-</body>
-</html>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "planejamento/operacional/base.html" %}
+{% block title %}Entrar | OP-APP{% endblock %}
+{% block content %}
+<section class="login-panel" aria-labelledby="entrar">
+<h1 id="entrar">Entrar no OP-APP</h1>
+<p>Use a conta fornecida pelo responsável pela sua operação.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="hidden" name="next" value="{{ next }}"><button type="submit">Entrar</button></form>
+<p>Se não consegue acessar, procure o responsável pelo OP-APP.</p>
+</section>
+{% endblock %}
