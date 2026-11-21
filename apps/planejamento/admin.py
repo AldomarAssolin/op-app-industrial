@@ -133,11 +133,35 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     def delete_model(self, request, obj):
         obj.delete(ator=request.user)
 
+    def get_actions(self, request):
+        acoes = super().get_actions(request)
+        if 'delete_selected' in acoes:
+            original, nome, descricao = acoes['delete_selected']
+            def excluir_com_verificacao(modeladmin, req, queryset):
+                try:
+                    with transaction.atomic():
+                        return original(modeladmin, req, queryset)
+                except ValidationError as erro:
+                    modeladmin.message_user(req, ' '.join(erro.messages), messages.ERROR)
+                    return HttpResponseRedirect(reverse('admin:planejamento_alocacao_changelist'))
+            acoes['delete_selected'] = (excluir_com_verificacao, nome, descricao)
+        return acoes
+
     @transaction.atomic
     def delete_queryset(self, request, queryset):
-        exigir_permissao(request.user, "delete")
-        queryset = filtrar_escopo(request.user, queryset)
-        for obj in queryset:
-            exigir_escopo_objeto(request.user, obj)
-        for obj in queryset:
+        from apps.organizacao.models import Trabalhador
+        exigir_permissao(request.user, 'delete')
+        registros = list(queryset.order_by('pk'))
+        tarefas = {obj.tarefa_id for obj in registros}
+        trabalhadores = {obj.trabalhador_id for obj in registros}
+        # Ordem global do lote: todas as tarefas, todos os trabalhadores, alocações.
+        list(Tarefa.objects.select_for_update().filter(pk__in=tarefas).order_by('pk'))
+        list(Trabalhador.objects.select_for_update().filter(pk__in=trabalhadores).order_by('pk'))
+        atuais = list(self.get_queryset(request).select_for_update().filter(
+            pk__in=[obj.pk for obj in registros]).order_by('pk'))
+        def estado(obj):
+            return (obj.pk, obj.tarefa_id, obj.trabalhador_id, obj.data, obj.turno_id, obj.alterado_em)
+        if [estado(obj) for obj in registros] != [estado(obj) for obj in atuais]:
+            raise ValidationError('A seleção mudou ou deixou de estar autorizada. Recarregue antes de remover.')
+        for obj in atuais:
             obj.delete(ator=request.user)

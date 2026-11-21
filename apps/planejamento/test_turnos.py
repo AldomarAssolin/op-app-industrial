@@ -326,6 +326,56 @@ class TurnosConcorrenciaTests(DadosTurnos, TransactionTestCase):
         self.assertEqual(Alocacao.objects.count(), 1)
 
 
+    def test_exclusao_lote_com_ordem_invertida_nao_deadlocka_com_edicao(self):
+        from threading import Event
+        from django.contrib import admin
+        from django.db import transaction
+        from django.test import RequestFactory
+        primeiro = self.alocar(self.hoje, self.tarefa2)
+        segundo = self.alocar(self.hoje + timedelta(days=1), self.tarefa)
+        editar = self.alocar(self.hoje + timedelta(days=2), self.tarefa)
+        excluido_b, editor_em_a = Event(), Event()
+        original = Alocacao.delete
+        def excluir(obj, *args, **kwargs):
+            resultado = original(obj, *args, **kwargs)
+            if obj.tarefa_id == self.tarefa2.pk:
+                excluido_b.set()
+                # Com o lote corrigido, A já está bloqueada: editor aguarda o commit.
+                # Sem a correção, editor segura A enquanto o lote ainda segura B.
+                editor_em_a.wait(timeout=0.5)
+            return resultado
+        def remover():
+            close_old_connections()
+            try:
+                req = RequestFactory().post('/admin/planejamento/alocacao/')
+                req.user = get_user_model().objects.get(pk=self.coord.pk)
+                admin.site._registry[Alocacao].delete_queryset(req, Alocacao.objects.filter(pk__in=[primeiro.pk, segundo.pk]))
+                return 'removidas'
+            finally:
+                close_old_connections()
+        def mover():
+            close_old_connections()
+            try:
+                if not excluido_b.wait(timeout=10):
+                    raise AssertionError('Exclusão não iniciou')
+                with transaction.atomic():
+                    list(Tarefa.objects.select_for_update().filter(pk=self.tarefa.pk))
+                    editor_em_a.set()
+                    obj = Alocacao.objects.get(pk=editar.pk)
+                    obj.tarefa_id = self.tarefa2.pk
+                    obj.save(ator=get_user_model().objects.get(pk=self.coord.pk))
+                return 'editada'
+            finally:
+                close_old_connections()
+        with patch.object(Alocacao, 'delete', excluir), ThreadPoolExecutor(max_workers=2) as pool:
+            a = pool.submit(remover)
+            b = pool.submit(mover)
+            self.assertEqual(a.result(timeout=20), 'removidas')
+            self.assertEqual(b.result(timeout=20), 'editada')
+        self.assertEqual(Alocacao.objects.count(), 1)
+        self.assertEqual(Alocacao.objects.get().tarefa_id, self.tarefa2.pk)
+
+
 class AtivacaoTurnosTests(TestCase):
     def test_configuracao_de_producao_recusa_ativacao_antes_da_36(self):
         import os

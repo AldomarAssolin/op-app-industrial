@@ -83,11 +83,12 @@ Esses eventos são anexados pelos serviços, sem edição direta no Admin.
 
 ## Testes e aceite
 
-25 testes novos foram preparados: referências, calendário brasileiro, vigência futura,
+26 testes novos foram preparados: referências, calendário brasileiro, vigência futura,
 transferência conjunta, revisão alterada/expirada/adulterada, reenvio, revogação de acesso,
 rollback, papel/setor, legado explícito, inativos/encerradas, unicidade, histórico,
-formulários/quadros, migração e trava de ativação. Dois casos exigem PostgreSQL:
-confirmações simultâneas e turnos distintos para a mesma pessoa/data. Os demais passaram
+formulários/quadros, migração e trava de ativação. Três casos exigem PostgreSQL:
+confirmações simultâneas, turnos distintos para a mesma pessoa/data e exclusão em lote
+concorrente com edição entre tarefas. Os demais passaram
 localmente em SQLite; PostgreSQL e suíte completa são conferidos no CI.
 
 Validação visual e de uso dos caminhos preparados ocorrerá em ensaio sintético junto
@@ -107,3 +108,11 @@ histórico de turnos, para não apagá-los. Depois da ativação futura, NÃO vo
 antiga: ela não conhece os novos invariantes. Usar recuperação conjunta de imagem/banco
 validada em cópia e decisão operacional explícita, considerando registros posteriores.
 Nenhum deploy ou reversão foi executado por esta entrega.
+
+## Correção após revisão
+
+A revisão Codex identificou risco de deadlock na exclusão em lote. A operação passou a
+bloquear todas as tarefas, depois trabalhadores e alocações em ordem global, revalidando
+a seleção. A ação do Admin envolve a exclusão e seus logs na mesma transação e apresenta
+erro de seleção alterada sem confirmar remoção parcial. Um teste PostgreSQL reproduz
+a exclusão B→A concorrente com edição A→B, preservando a política de bloqueios.
