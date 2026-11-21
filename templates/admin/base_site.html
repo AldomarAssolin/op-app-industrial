@@ -1,0 +1,14 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'planejamento/css/admin.css' %}">
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }}{% if request.resolver_match.url_name == 'index' %} op-admin-home{% endif %}{% endblock %}
+
+{% block branding %}
+  {{ block.super }}
+  {% if has_permission %}<a class="op-admin-return" href="{% url 'entrada_operacional' %}">Voltar à área de trabalho</a>{% endif %}
+{% endblock %}

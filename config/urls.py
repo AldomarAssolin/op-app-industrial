@@ -20,6 +20,10 @@ from .health import health
 from apps.planejamento.views_operacionais import entrada, LoginOperacional, LogoutOperacional
 from apps.planejamento.views_publicas import backup, inicio, privacidade
 
+admin.site.site_header = "Administração do OP-APP"
+admin.site.site_title = "Administração | OP-APP"
+admin.site.index_title = "Configuração e apoio à operação"
+
 urlpatterns = [
     path('', inicio, name='inicio'),
     path('privacidade/', privacidade, name='privacidade'),

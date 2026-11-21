@@ -1,0 +1,101 @@
+.op-admin-return { display: inline-block; font-size: 0.8125rem; margin-block: 4px; }
+
+/* Extend the native Admin. Layout changes apply only to its main dashboard. */
+@media (min-width: 1025px) {
+  .op-admin-home #content {
+    box-sizing: border-box;
+    width: calc(100% - 80px);
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 28px 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px 32px;
+    align-items: start;
+  }
+  .op-admin-home #content > h1,
+  .op-admin-home #content > h2 { grid-column: 1 / -1; margin-bottom: 0; }
+  .op-admin-home #content-main { float: none; min-width: 0; width: auto; grid-column: 1; }
+  .op-admin-home #content-related { float: none; width: auto; margin: 0; grid-column: 2; }
+  .op-admin-home #content > br.clear { display: none; }
+}
+
+/* Explicit dark selection takes precedence over the operating-system preference. */
+html[data-theme="dark"] {
+    --primary: #34576b;
+    --primary-fg: #f1f5f8;
+    --body-bg: #18232d;
+    --body-fg: #e0e8ee;
+    --body-quiet-color: #b8c7d2;
+    --body-medium-color: #cbd7df;
+    --body-loud-color: #f1f5f8;
+    --header-bg: #253f50;
+    --header-color: #e0e8ee;
+    --header-branding-color: #e0e8ee;
+    --header-link-color: #e0e8ee;
+    --breadcrumbs-bg: #253f50;
+    --breadcrumbs-fg: #b8c7d2;
+    --breadcrumbs-link-fg: #e0e8ee;
+    --link-fg: #a1c7df;
+    --link-hover-color: #d2e7f5;
+    --link-selected-fg: #c2c7ec;
+    --hairline-color: #344653;
+    --border-color: #657f90;
+    --darkened-bg: #202f3b;
+    --selected-bg: #293e4d;
+    --selected-row: #30495a;
+    --error-fg: #ffb1ad;
+    --message-success-bg: #244b3c;
+    --message-warning-bg: #51442b;
+    --message-error-bg: #573239;
+    --button-bg: #34576b;
+    --button-hover-bg: #41697e;
+    --default-button-bg: #34576b;
+    --default-button-hover-bg: #41697e;
+    --close-button-bg: #465c6b;
+    --close-button-hover-bg: #536c7c;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="auto"], html:not([data-theme]) {
+    --primary: #34576b;
+    --primary-fg: #f1f5f8;
+    --body-bg: #18232d;
+    --body-fg: #e0e8ee;
+    --body-quiet-color: #b8c7d2;
+    --body-medium-color: #cbd7df;
+    --body-loud-color: #f1f5f8;
+    --header-bg: #253f50;
+    --header-color: #e0e8ee;
+    --header-branding-color: #e0e8ee;
+    --header-link-color: #e0e8ee;
+    --breadcrumbs-bg: #253f50;
+    --breadcrumbs-fg: #b8c7d2;
+    --breadcrumbs-link-fg: #e0e8ee;
+    --link-fg: #a1c7df;
+    --link-hover-color: #d2e7f5;
+    --link-selected-fg: #c2c7ec;
+    --hairline-color: #344653;
+    --border-color: #657f90;
+    --darkened-bg: #202f3b;
+    --selected-bg: #293e4d;
+    --selected-row: #30495a;
+    --error-fg: #ffb1ad;
+    --message-success-bg: #244b3c;
+    --message-warning-bg: #51442b;
+    --message-error-bg: #573239;
+    --button-bg: #34576b;
+    --button-hover-bg: #41697e;
+    --default-button-bg: #34576b;
+    --default-button-hover-bg: #41697e;
+    --close-button-bg: #465c6b;
+    --close-button-hover-bg: #536c7c;
+  }
+}
+
+/* Visible keyboard focus in both themes, including the return link. */
+#header a:focus-visible, #header button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+  border-radius: 2px;
+}
