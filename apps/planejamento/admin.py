@@ -9,7 +9,7 @@ from django.utils.html import format_html_join
 from django.urls import path, reverse
 
 from .orientacao import proximo_passo
-from .forms import AlocacaoMultidiaForm, TarefaTurnosForm
+from .forms import AlocacaoMultidiaForm, TarefaTurnosForm, TrabalhadorTurnoChoiceField
 from .models import Alocacao, HistoricoTarefa, Tarefa, exigir_permissao, TurnoTarefa, ObservacaoTarefaTurno
 from .services import alocar_dias
 from apps.organizacao.admin_escopo import EscopoAdminMixin, GravacaoValidadaAdminMixin
@@ -177,14 +177,23 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     readonly_fields = ("criado_por", "alterado_por", "criado_em", "alterado_em")
     change_list_template = "admin/planejamento/alocacao/change_list.html"
 
+    class Media:
+        js = ('planejamento/js/turno_trabalhador.js',)
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'trabalhador' and settings.OP_APP_TURNOS_ENABLED:
+            kwargs['form_class'] = TrabalhadorTurnoChoiceField
         if db_field.name == 'turno' and settings.OP_APP_TURNOS_ENABLED:
             from apps.organizacao.models import Turno
             permitidos = set()
             for setor in setores_do_usuario(request.user):
                 permitidos |= turnos_permitidos(request.user, setor.pk)
             kwargs.update(queryset=Turno.objects.filter(ativo=True, pk__in=permitidos), required=True)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+        campo = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == 'trabalhador' and settings.OP_APP_TURNOS_ENABLED:
+            campo.widget.attrs['data-turno-referencia'] = 'data'
+            campo.help_text = 'Turno habitual na data da alocação; sem data, considera hoje.'
+        return campo
 
     def get_exclude(self, request, obj=None):
         return ('turno',) if not settings.OP_APP_TURNOS_ENABLED else ()
@@ -223,7 +232,8 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
 
     def alocar_varios_dias(self, request):
         exigir_permissao(request.user, "add")
-        form = AlocacaoMultidiaForm(request.POST or None, ator=request.user)
+        form = AlocacaoMultidiaForm(request.POST or None, ator=request.user,
+                                   initial={'inicio': request.GET.get('inicio', '')})
         if request.method == "POST" and form.is_valid():
             dados = form.cleaned_data
             try:

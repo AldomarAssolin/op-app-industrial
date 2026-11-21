@@ -403,6 +403,39 @@ class AutorizacaoTurnosTests(TestCase):
                 self.assertEqual(alocacao.observacao, 'Atualização autorizada')
                 self.assertEqual(alocacao.trabalhador_id, self.w1.pk)
 
+    def test_rotulos_do_seletor_sem_id_com_turno_e_legado(self):
+        self.client.force_login(self.c1)
+        resposta = self.client.get(reverse('admin:planejamento_alocacao_add'))
+        campo = resposta.context['adminform'].form.fields['trabalhador']
+        rotulos = {str(valor): texto for valor, texto in campo.choices}
+        self.assertEqual(rotulos[str(self.w1.pk)], 'Pessoa T1 — T1')
+        self.assertEqual(rotulos[str(self.w2.pk)], 'Pessoa T2 oculta — T2')
+        self.assertEqual(rotulos[str(self.legado.pk)], 'Pessoa sem turno — Turno não informado')
+        self.assertNotIn(str(self.wb.pk), rotulos)
+        self.assertEqual(str(self.w1), f'Pessoa T1 (ID {self.w1.pk})')
+        self.assertContains(resposta, 'planejamento/js/turno_trabalhador')
+        self.assertContains(resposta, 'data-turno-referencia="data"')
+
+    def test_rotulos_acompanham_data_diaria_e_inicio_multidia(self):
+        vigencia = self.hoje + timedelta(days=2)
+        revisao = revisar_troca_turno(ator=self.c1, trabalhador_id=self.w1.pk,
+                                     turno_id='T2', vigencia=vigencia)
+        confirmar_troca_turno(ator=self.c1, confirmacao=revisao['confirmacao'])
+        self.client.force_login(self.c1)
+        for rota, parametro in (('admin:planejamento_alocacao_add', 'data'),
+                                ('admin:planejamento_alocacao_varios_dias', 'inicio')):
+            for dia, turno in ((self.hoje, 'T1'), (vigencia, 'T2')):
+                with self.subTest(rota=rota, dia=dia):
+                    resposta = self.client.get(reverse(rota), {parametro: dia.isoformat()})
+                    formulario = resposta.context['adminform'].form if parametro == 'data' else resposta.context['form']
+                    rotulos = {str(valor): texto for valor, texto in formulario.fields['trabalhador'].choices}
+                    self.assertEqual(rotulos[str(self.w1.pk)], f'Pessoa T1 — {turno}')
+                    self.assertContains(resposta, 'planejamento/js/turno_trabalhador')
+        self.client.force_login(self.l1)
+        resposta = self.client.get(reverse('admin:planejamento_alocacao_add'), {'data':vigencia.isoformat()})
+        ids = resposta.context['adminform'].form.fields['trabalhador'].queryset.values_list('pk', flat=True)
+        self.assertNotIn(self.w1.pk, ids)
+
     def test_revogacao_invalida_gravacao_aberta_com_usuario_antigo(self):
         self.client.force_login(self.l1)
         self.assertEqual(self.client.get(reverse('admin:planejamento_alocacao_add')).status_code, 200)

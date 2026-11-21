@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% block extrahead %}{{ block.super }}{{ form.media }}{% endblock %}
 {% block content %}
   {% if orientacao.estado != "pronto" and orientacao.estado != "alocacoes" and orientacao.estado != "semana_vazia" %}{% include "planejamento/operacional/orientacao.html" %}{% endif %}
   <p>Escolha o período e os dias da semana. Todos os dias serão gravados juntos; se algum for inválido ou duplicado, nenhum será criado.</p>

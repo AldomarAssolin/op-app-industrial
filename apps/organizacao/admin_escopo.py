@@ -76,6 +76,7 @@ class EscopoAdminMixin:
                 try:
                     referencia = forms.DateField().clean(
                         request.POST.get('data') or request.POST.get('inicio')
+                        or request.GET.get('data') or request.GET.get('inicio')
                         or getattr(request, '_op_data_alocacao', None))
                 except forms.ValidationError:
                     pass

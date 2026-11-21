@@ -9,9 +9,16 @@ from .services import setores_permitidos, semana_de
 from apps.organizacao.autorizacao import filtrar_escopo
 
 
+class TrabalhadorTurnoChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        if not settings.OP_APP_TURNOS_ENABLED:
+            return str(obj)
+        return f"{obj.nome} — {obj._turno_vigente or 'Turno não informado'}"
+
+
 class AlocacaoMultidiaForm(forms.Form):
     turno = forms.ModelChoiceField(label='Turno', queryset=Turno.objects.filter(ativo=True))
-    trabalhador = forms.ModelChoiceField(queryset=Trabalhador.objects.filter(ativo=True)
+    trabalhador = TrabalhadorTurnoChoiceField(queryset=Trabalhador.objects.filter(ativo=True)
                                          .select_related("setor_principal", "funcao_principal"))
     tarefa = forms.ModelChoiceField(queryset=Tarefa.objects.filter(
         status__in=(Tarefa.Status.PENDENTE, Tarefa.Status.EM_ANDAMENTO)))
@@ -32,18 +39,23 @@ class AlocacaoMultidiaForm(forms.Form):
             self.fields.pop('turno')
         referencia = None
         try:
-            referencia = forms.DateField().clean(self.data.get('inicio'))
+            referencia = forms.DateField().clean(self.data.get('inicio') or self.initial.get('inicio'))
         except forms.ValidationError:
             pass
         for campo in ("trabalhador", "tarefa"):
             self.fields[campo].queryset = filtrar_escopo(ator, self.fields[campo].queryset,
                 data_referencia=referencia if campo == 'trabalhador' else None)
         if settings.OP_APP_TURNOS_ENABLED:
+            self.fields['trabalhador'].widget.attrs['data-turno-referencia'] = 'inicio'
+            self.fields['trabalhador'].help_text = 'Turno habitual no primeiro dia informado; sem data, considera hoje.'
             from apps.organizacao.autorizacao import turnos_permitidos, setores_do_usuario
             permitidos = set()
             for setor in setores_do_usuario(ator):
                 permitidos |= turnos_permitidos(ator, setor.pk)
             self.fields['turno'].queryset = Turno.objects.filter(ativo=True, pk__in=permitidos)
+
+    class Media:
+        js = ('planejamento/js/turno_trabalhador.js',)
 
     def clean(self):
         dados = super().clean()

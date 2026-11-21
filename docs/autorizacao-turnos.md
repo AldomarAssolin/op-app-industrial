@@ -115,3 +115,12 @@ Ao abrir a edição de alocação, as opções de trabalhador usam a data do reg
 habitual de hoje. Testes GET/POST cobrem alocação passada e futura após mudança de habitual,
 com edição autorizada de observação sem perder o trabalhador selecionado. As URLs dos
 novos históricos também ficam fechadas quando a opção de turnos está desabilitada.
+
+## Identificação do trabalhador na alocação
+
+Nos seletores de alocação diária e multidia, o trabalhador aparece como `Nome — T1`, sem
+ID técnico. Sem habitual vigente, aparece `Nome — Turno não informado`. A identidade usada
+para gravar continua sendo a chave do trabalhador; a identificação nas outras telas não muda.
+Ao mudar a data (ou o primeiro dia no multidia), o formulário consulta novamente as opções
+permitidas, atualizando os turnos sem apagar os demais campos digitados. No multidia, cada
+dia continua sendo validado ao salvar; o rótulo usa o início. Sem data, a referência é hoje.
