@@ -295,6 +295,8 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 
 ## 11. Documentação
 
+A evolução da apresentação pública está descrita em [docs/pagina-publica.md](docs/pagina-publica.md). Ela tem habilitação própria e transição do Branding em duas etapas; não substituir a página inicial cadastrada no OAuth antes de preparar o endereço específico da integração.
+
 As decisões de arquitetura, regras de negócio e guias técnicos serão mantidos em `docs/`. O README deve continuar sendo o ponto de entrada do projeto, sem acumular toda a especificação funcional.
 
 O [registro da implantação de 17/11/2026](docs/implantacao-2026-11-17.md) reúne as entregas, validações informadas pelo operador, ensaio de recuperação, cópia criptografada no Drive e pendências da issue #16. Consulte esse registro para o andamento da implantação; as referências históricas acima não representam o estado operacional atual.

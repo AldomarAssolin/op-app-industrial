@@ -3,35 +3,127 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Organize trabalhadores, tarefas e alocações diárias. Consulte o planejamento da equipe por semana e setor no OP-APP.">
   <title>{% block title %}OP-APP{% endblock %}</title>
   <style>
-    :root { color-scheme: light; font: 17px/1.65 system-ui, sans-serif; color: #19333d; background: #f4f7f8; }
+    :root { color-scheme: light; font: 16px/1.65 system-ui, sans-serif; color: #182d3c; background: #f3f6f8; --navy: #142f40; --blue: #165e85; --muted: #4f6473; --line: #cfdae2; }
+    * { box-sizing: border-box; }
     body { margin: 0; }
-    header, main, footer { max-width: 800px; margin: auto; padding: 1.5rem; }
-    header { border-bottom: 1px solid #ccd8dc; }
-    nav { display: flex; flex-wrap: wrap; gap: 1.25rem; }
-    a { color: #075d69; text-underline-offset: .2em; }
-    a:focus-visible { outline: 3px solid #b47100; outline-offset: 4px; }
-    h1, h2 { line-height: 1.25; }
-    h1 { font-size: clamp(1.8rem, 6vw, 2.6rem); }
-    h2 { margin-top: 2rem; font-size: 1.35rem; }
-    section { margin: 1.5rem 0; }
-    footer { border-top: 1px solid #ccd8dc; font-size: .9rem; }
+    a { color: #125d89; text-underline-offset: .22em; }
+    a:focus-visible, [tabindex]:focus-visible { outline: 3px solid #b65b00; outline-offset: 5px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { line-height: 1.16; letter-spacing: -.025em; }
+    h1 { font-size: clamp(2rem, 4.6vw, 3.8rem); font-weight: 750; }
+    h2 { font-size: clamp(1.65rem, 3vw, 2.4rem); }
+    h3 { font-size: 1.18rem; }
+    .wrap { max-width: 1240px; margin: auto; padding-inline: 32px; }
+    .skip { position: absolute; left: 16px; top: -100px; padding: 10px 16px; background: white; z-index: 10; }
+    .skip:focus { top: 12px; }
+    .site-header { background: white; border-bottom: 1px solid var(--line); }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-block: 22px; }
+    .brand { display: inline-flex; align-items: center; gap: 12px; color: var(--navy); font-size: 1.25rem; font-weight: 800; text-decoration: none; }
+    .brand-mark { display: grid; grid-template-columns: repeat(3, 5px); gap: 3px; align-items: end; height: 25px; }
+    .brand-mark i { display: block; width: 5px; background: var(--blue); height: 15px; }
+    .brand-mark i:nth-child(2) { height: 25px; }
+    .brand-mark i:nth-child(3) { height: 20px; }
+    .brand small { display: block; color: var(--muted); font-size: .72rem; font-weight: 500; }
+    nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+    nav a { color: var(--navy); font-size: .9rem; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    .button { display: inline-flex; justify-content: center; align-items: center; min-height: 46px; padding: 11px 20px; border: 1px solid var(--blue); border-radius: 6px; background: var(--blue); color: white; font-weight: 650; text-decoration: none; line-height: 1.4; }
+    .button:hover { background: #104965; color: white; text-decoration: none; }
+    .button.secondary { background: transparent; color: var(--blue); }
+    .hero { padding-block: 76px 62px; }
+    .hero-grid { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 42px; }
+    .hero-grid > * { min-width: 0; }
+    .eyebrow { color: #165e85; font-size: .74rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 18px; }
+    .lead { color: var(--muted); font-size: 1.13rem; max-width: 48ch; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+    .small-note { font-size: .8rem; color: var(--muted); margin: 14px 0 0; }
+    .preview { background: white; border: 1px solid #b9ccd8; border-radius: 10px; overflow: hidden; box-shadow: 0 18px 45px #142f4010; }
+    .preview-head { background: var(--navy); padding: 22px; color: white; }
+    .preview-head strong { font-size: 1.1rem; }
+    .preview-head p { margin: 4px 0 0; color: #c6dce8; font-size: .84rem; }
+    .example-label { display: inline-block; background: #fff1d9; color: #704400; border: 1px solid #ecd3a8; border-radius: 4px; padding: 3px 8px; font-size: .65rem; font-weight: 750; letter-spacing: .07em; margin-bottom: 12px; }
+    .preview-scroll { overflow-x: auto; }
+    .preview table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: .77rem; }
+    caption { text-align: left; padding: 12px 16px; font-weight: 650; background: #edf3f7; }
+    th, td { padding: 14px 10px; border-bottom: 1px solid #dce5eb; text-align: left; vertical-align: top; }
+    thead th { color: var(--muted); background: #f6f8fa; font-size: .71rem; }
+    tbody th { width: 40%; }
+    tbody th span { display: block; font-weight: 400; color: var(--muted); margin-top: 3px; }
+    .allocated { background: #edf7f3; color: #17593f; text-align: center; font-weight: 650; }
+    .day-empty { text-align: center; color: #637683; }
+    .preview-foot { padding: 13px 16px; margin: 0; color: var(--muted); font-size: .76rem; }
+    .principle { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; padding-block: 20px; border-block: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+    .principle span::before { content: ''; display: inline-block; width: 7px; height: 7px; background: #287759; border-radius: 50%; margin-right: 9px; }
+    .section { padding-block: 65px; }
+    .section-intro { color: var(--muted); max-width: 65ch; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; list-style: none; margin: 32px 0 0; padding: 0; }
+    .steps li { border-top: 2px solid #a7becd; padding-top: 20px; }
+    .step-number { display: block; color: #286485; font-size: .78rem; font-weight: 700; margin-bottom: 16px; }
+    .steps p { color: var(--muted); font-size: .94rem; margin: 0; }
+    .scope { background: #e6eef3; border-block: 1px solid #d2dfe7; }
+    .scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    .scope ul { margin: 0; padding-left: 20px; }
+    .scope li { margin-bottom: 12px; }
+    .closing { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between; padding-block: 46px; }
+    .closing h2 { font-size: 1.7rem; margin-bottom: 8px; }
+    .closing p { color: var(--muted); margin-bottom: 0; }
+    .site-footer { border-top: 1px solid var(--line); background: white; padding-block: 24px; color: var(--muted); font-size: .8rem; }
+    .footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 28px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px 20px; }
     .contato { overflow-wrap: anywhere; }
+    .document { max-width: 850px; margin: auto; padding: 48px 24px 64px; }
+    .document h1 { font-size: clamp(1.9rem, 4vw, 2.7rem); }
+    .document h2 { font-size: 1.35rem; margin-top: 32px; }
+    @media (max-width: 940px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+      .hero { padding-block: 44px; }
+      h1 { max-width: 18ch; }
+      .lead { max-width: 60ch; }
+      .preview { max-width: 680px; width: 100%; }
+    }
+    @media (max-width: 620px) {
+      .wrap { padding-inline: 20px; }
+      .header-inner { padding-block: 16px; }
+      nav { gap: 12px 18px; }
+      .brand small { display: none; }
+      .steps, .scope-grid { grid-template-columns: 1fr; gap: 28px; }
+      .section { padding-block: 42px; }
+      .hero-grid { min-width: 0; }
+      .hero-grid > * { min-width: 0; }
+      .principle { display: grid; }
+      .actions .button { flex: 1 1 auto; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <strong>OP-APP</strong>
-    <nav aria-label="Navegação pública">
-      <a href="{% url 'inicio' %}">Início</a>
-      <a href="{% url 'privacidade' %}">Privacidade</a>
-      <a href="{% url 'admin:index' %}">Acesso ao sistema</a>
-    </nav>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="{% url 'inicio' %}" aria-label="OP-APP — início">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>OP-APP<small>Planejamento operacional industrial</small></span>
+      </a>
+      <nav aria-label="Navegação pública">
+        {% if product_home %}<a href="#como-funciona">Como funciona</a>{% else %}<a href="{% url 'inicio' %}">Início</a>{% endif %}
+        <a class="button" href="{% url 'admin:login' %}">Entrar no sistema <span aria-hidden="true">&nbsp;↗</span></a>
+      </nav>
+    </div>
   </header>
-  <main>{% block content %}{% endblock %}</main>
-  <footer>
-    <span class="contato">Suporte: <a href="mailto:{{ support_email }}">{{ support_email }}</a></span>
+  <main id="conteudo" tabindex="-1"{% if not product_home %} class="document"{% endif %}>{% block content %}{% endblock %}</main>
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <span>OP-APP · Planejamento operacional industrial</span>
+      {% if integration_enabled %}
+      <div class="footer-links" aria-label="Informações da integração">
+        <a href="{% url 'integracao_backup' %}">Integração OP-APP Backups</a>
+        <a href="{% url 'privacidade' %}">Privacidade da integração</a>
+        <a class="contato" href="mailto:{{ support_email }}">Contato</a>
+      </div>
+      {% endif %}
+    </div>
   </footer>
 </body>
 </html>
