@@ -1,0 +1,15 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>Trabalhador: {{ trabalhador }}. A data é a do início do turno; horários são apenas referência.</p>
+{% if revisao %}
+<h2>Confira antes de confirmar</h2>
+<p>{{ revisao.anterior|default:"Turno não informado" }} → {{ revisao.turno }}, a partir de {{ revisao.vigencia|date:"d/m/Y" }}.</p>
+<p>As {{ revisao.alocacoes|length }} alocações abaixo serão transferidas juntas. Datas anteriores permanecem preservadas. Uma troca temporária exige outra mudança explícita para retornar ao turno anterior.</p>
+<ul>{% for alocacao in revisao.alocacoes %}<li>{{ alocacao.data|date:"d/m/Y" }} · {{ alocacao.tarefa }} · {{ alocacao.turno|default:"Turno não informado" }} → {{ revisao.turno }}</li>{% empty %}<li>Nenhuma alocação futura para transferir.</li>{% endfor %}</ul>
+<form method="post">{% csrf_token %}<input type="hidden" name="confirmacao" value="{{ revisao.confirmacao }}"><button type="submit">Confirmar troca e transferência</button></form>
+<a href="">Revisar outra opção</a>
+{% else %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Revisar efeitos da troca</button></form>
+{% endif %}
+<p><a href="{% url 'admin:organizacao_trabalhador_changelist' %}">Voltar à equipe</a></p>
+{% endblock %}
