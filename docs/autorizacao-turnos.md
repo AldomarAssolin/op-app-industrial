@@ -58,7 +58,9 @@ Usar uma cópia local descartável; não reutilizar credenciais de produção.
    `UsuarioSetor` para Líder/Consulta. Não tornar contas operacionais superusuárias.
 4. Em Organização → Responsáveis por setor, associar o Coordenador de cada setor.
 5. Como Coordenador, criar os vínculos ativos de Líder para T1/T2/T3 no próprio setor.
-6. Nos trabalhadores, revisar/confirmar o turno habitual com vigência. Para legado futuro,
+6. Na criação do trabalhador, escolher opcionalmente o turno inicial (vigente hoje).
+   Sem seleção, permanece Turno não informado. Na edição, a seção Atualizar turno habitual
+   permite iniciar a revisão com vigência. Para legado futuro,
    marcar explicitamente a classificação após revisar o conjunto. Ver `turnos.md`.
 7. Preparar participação dos turnos nas tarefas e alocações sintéticas. Conferir `/app/`,
    listas, opções de formulário, busca, URLs diretas, quadro e impressão.
@@ -124,3 +126,24 @@ para gravar continua sendo a chave do trabalhador; a identificação nas outras 
 Ao mudar a data (ou o primeiro dia no multidia), o formulário consulta novamente as opções
 permitidas, atualizando os turnos sem apagar os demais campos digitados. No multidia, cada
 dia continua sendo validado ao salvar; o rótulo usa o início. Sem data, a referência é hoje.
+
+
+## Cadastro inicial, edição e visão da equipe
+
+O turno inicial do trabalhador é opcional e começa na data operacional de hoje. Cadastro e
+primeiro evento de habitual são gravados juntos, com autoria; falha reverte ambos. Sem
+seleção, não há evento e a apresentação é Turno não informado. Administrador operacional
+pode informar o turno na criação conforme sua permissão de cadastro; isso não concede
+permissão de troca futura nem gestão de vínculos.
+
+Na página de edição, Coordenador responsável e superusuário iniciam a troca pela seção
+Atualizar turno habitual. A revisão continua exibindo o lote futuro antes da confirmação,
+com as mesmas verificações e atomicidade. Ao confirmar, retorna ao trabalhador. Alterações
+do cadastro devem ser salvas antes de iniciar a revisão. Não se sobrescreve o turno por um
+select comum ao salvar os dados cadastrais. Eventos continuam cronológicos: vigência nova
+posterior à última registrada; não há retificação ou remoção do histórico nesta entrega.
+
+A edição exibe histórico somente leitura (vigência, origem/destino, autor, data e quantidade
+transferida) ao Coordenador autorizado, Administrador e superusuário. A lista de trabalhadores
+oferece a esses perfis um filtro de turno habitual vigente **hoje**, incluindo Turno não
+informado, preservando o escopo de setores. Mudanças futuras não antecipam esse filtro.

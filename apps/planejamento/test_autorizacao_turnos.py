@@ -436,6 +436,96 @@ class AutorizacaoTurnosTests(TestCase):
         ids = resposta.context['adminform'].form.fields['trabalhador'].queryset.values_list('pk', flat=True)
         self.assertNotIn(self.w1.pk, ids)
 
+    def test_cadastro_com_turno_opcional_registra_primeira_vigencia(self):
+        self.client.force_login(self.c1)
+        url = reverse('admin:organizacao_trabalhador_add')
+        self.assertContains(self.client.get(url), 'name="turno_inicial"')
+        for nome, turno in (('Cadastro com turno', 'T1'), ('Cadastro sem turno', '')):
+            resposta = self.client.post(url, {'nome':nome, 'ativo':'on',
+                'setor_principal':self.a.pk, 'funcao_principal':self.funcao.pk, 'turno_inicial':turno})
+            self.assertEqual(resposta.status_code, 302)
+            w = Trabalhador.objects.get(nome=nome)
+            self.assertEqual(w.turno_habitual.pk if w.turno_habitual else None, turno or None)
+            self.assertEqual(w.mudancas_turno.count(), int(bool(turno)))
+            if turno:
+                evento = w.mudancas_turno.get()
+                self.assertEqual(evento.vigencia, self.hoje)
+                self.assertEqual(evento.registrado_por, self.c1)
+                self.assertIsNone(evento.turno_anterior)
+
+    def test_cadastro_inicial_invalido_reverte_trabalhador_e_historico(self):
+        from apps.organizacao.turnos import criar_trabalhador_com_turno
+        self.t3.ativo = False
+        self.t3.save()
+        w = Trabalhador(nome='Não persistir', setor_principal=self.a, funcao_principal=self.funcao)
+        with self.assertRaises(ValidationError):
+            criar_trabalhador_com_turno(ator=self.c1, trabalhador=w, turno=self.t3)
+        self.assertFalse(Trabalhador.objects.filter(nome='Não persistir').exists())
+        w = Trabalhador(nome='Fora do setor', setor_principal=self.b, funcao_principal=self.funcao)
+        with self.assertRaises(PermissionDenied):
+            criar_trabalhador_com_turno(ator=self.c1, trabalhador=w, turno=self.t1)
+        self.assertFalse(Trabalhador.objects.filter(nome='Fora do setor').exists())
+        with self.assertRaises(ValidationError):
+            criar_trabalhador_com_turno(ator=self.c1, trabalhador=self.w1, turno=self.t2)
+        self.assertEqual(self.w1.turno_habitual.pk, 'T1')
+
+    def test_edicao_exibe_historico_e_troca_revisada_retorna_ao_trabalhador(self):
+        self.client.force_login(self.c1)
+        url = reverse('admin:organizacao_trabalhador_change', args=[self.w1.pk])
+        pagina = self.client.get(url)
+        self.assertContains(pagina, 'Atualizar turno habitual')
+        self.assertNotContains(pagina, 'name="turno_inicial"')
+        self.assertContains(pagina, 'coord_a')
+        self.assertContains(pagina, 'alocacoes_transferidas')
+        futura = self.alloc(self.w1, self.f1, self.c1, self.t1, self.hoje + timedelta(days=2))
+        rota = reverse('admin:organizacao_trabalhador_turno', args=[self.w1.pk])
+        revisao = self.client.post(rota, {'turno':'T2', 'vigencia':(self.hoje + timedelta(days=1)).isoformat()})
+        self.assertEqual(revisao.status_code, 200)
+        self.assertContains(revisao, 'Confirmar troca e transferência')
+        resposta = self.client.post(rota, {'confirmacao': revisao.context['revisao']['confirmacao']})
+        self.assertRedirects(resposta, url)
+        futura.refresh_from_db()
+        self.al1.refresh_from_db()
+        self.assertEqual(futura.turno_id, 'T2')
+        self.assertEqual(self.al1.turno_id, 'T1')
+        self.assertEqual(self.w1.mudancas_turno.count(), 2)
+
+    def test_filtro_turno_para_coordenador_admin_e_superuser_preserva_escopo(self):
+        url = reverse('admin:organizacao_trabalhador_changelist')
+        for ator in (self.c1, self.admin, self.root):
+            self.client.force_login(ator)
+            for codigo, esperado in (('T1', self.w1.pk), ('T2', self.w2.pk), ('nao_informado', self.legado.pk)):
+                with self.subTest(ator=ator.username, codigo=codigo):
+                    resposta = self.client.get(url, {'turno_habitual':codigo})
+                    ids = set(resposta.context['cl'].queryset.values_list('pk', flat=True))
+                    self.assertIn(esperado, ids)
+                    if ator == self.c1:
+                        self.assertNotIn(self.wb.pk, ids)
+        self.client.force_login(self.l1)
+        self.assertNotContains(self.client.get(url), 'data-filter-title="turno habitual hoje"')
+        pagina = self.client.get(reverse('admin:organizacao_trabalhador_change', args=[self.w1.pk]))
+        self.assertNotContains(pagina, 'Atualizar turno habitual')
+
+    def test_administrador_cadastra_turno_inicial_e_consulta_historico_sem_trocar(self):
+        self.client.force_login(self.admin)
+        resposta = self.client.post(reverse('admin:organizacao_trabalhador_add'), {
+            'nome':'Inicial pelo administrador', 'ativo':'on', 'setor_principal':self.a.pk,
+            'funcao_principal':self.funcao.pk, 'turno_inicial':'T3'})
+        self.assertEqual(resposta.status_code, 302)
+        w = Trabalhador.objects.get(nome='Inicial pelo administrador')
+        self.assertEqual(w.turno_habitual.pk, 'T3')
+        pagina = self.client.get(reverse('admin:organizacao_trabalhador_change', args=[w.pk]))
+        self.assertContains(pagina, 'admin_operacional')
+        self.assertNotContains(pagina, 'Atualizar turno habitual')
+        self.assertEqual(self.client.get(reverse('admin:organizacao_trabalhador_turno', args=[w.pk])).status_code, 403)
+
+    @override_settings(OP_APP_TURNOS_ENABLED=False)
+    def test_cadastro_sem_flag_nao_exibe_turno_inicial_ou_filtro(self):
+        self.client.force_login(self.c1)
+        self.assertNotContains(self.client.get(reverse('admin:organizacao_trabalhador_add')), 'name="turno_inicial"')
+        resposta = self.client.get(reverse('admin:organizacao_trabalhador_changelist'))
+        self.assertNotContains(resposta, 'data-filter-title="turno habitual hoje"')
+
     def test_revogacao_invalida_gravacao_aberta_com_usuario_antigo(self):
         self.client.force_login(self.l1)
         self.assertEqual(self.client.get(reverse('admin:planejamento_alocacao_add')).status_code, 200)

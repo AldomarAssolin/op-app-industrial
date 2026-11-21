@@ -11,5 +11,5 @@
 {% else %}
 <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Revisar efeitos da troca</button></form>
 {% endif %}
-<p><a href="{% url 'admin:organizacao_trabalhador_changelist' %}">Voltar à equipe</a></p>
+<p><a href="{% url 'admin:organizacao_trabalhador_change' trabalhador.pk %}">Voltar ao trabalhador</a></p>
 {% endblock %}

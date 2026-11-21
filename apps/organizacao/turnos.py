@@ -130,3 +130,25 @@ def confirmar_troca_turno(*, ator, confirmacao, trabalhador_id=None):
                 tarefa_id=alocacao.tarefa_id, data=alocacao.data, turno_anterior_id=turno_anterior_id,
                 turno_novo=alocacao.turno, registrado_por=ator)
     return evento
+
+
+@transaction.atomic
+def criar_trabalhador_com_turno(*, ator, trabalhador, turno=None):
+    """Cadastro e primeira vigência juntos, sem transferir planejamento preexistente."""
+    if not settings.OP_APP_TURNOS_ENABLED:
+        raise PermissionDenied('A operação com turnos não está habilitada.')
+    ator = travar_autorizacao(ator)
+    if trabalhador.pk is not None or not trabalhador._state.adding:
+        raise ValidationError('Para um trabalhador existente, revise a troca de turno.')
+    trabalhador.save(ator=ator)
+    if turno is not None:
+        atual = Turno.objects.filter(pk=getattr(turno, 'pk', turno), ativo=True).first()
+        if atual is None:
+            raise ValidationError('Selecione um turno ativo.')
+        if not trabalhador.ativo:
+            raise ValidationError('Confira o trabalhador inativo antes de definir o turno.')
+        evento = MudancaTurno(trabalhador=trabalhador, turno_novo=atual,
+                             vigencia=data_operacional_hoje(), registrado_por=ator)
+        evento.full_clean()
+        MudancaTurno.objects.bulk_create([evento])
+    return trabalhador

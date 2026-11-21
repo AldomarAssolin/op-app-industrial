@@ -15,8 +15,8 @@ from .autorizacao import administrador, LIDER, COORDENADOR
 from .models import (Funcao, Setor, Trabalhador, UsuarioSetor, Turno,
     ResponsavelSetor, VinculoLiderTurno, HistoricoAcessoTurno, MudancaTurno)
 from .autorizacao import exigir_escopo_objeto, coordenador_no_setor, filtrar_escopo, pode_manter_equipe
-from .forms_turnos import TrocaTurnoForm
-from .turnos import exigir_coordenador, revisar_troca_turno, confirmar_troca_turno
+from .forms_turnos import TrocaTurnoForm, TrabalhadorCadastroForm
+from .turnos import exigir_coordenador, revisar_troca_turno, confirmar_troca_turno, criar_trabalhador_com_turno
 
 
 class CadastroAdmin(admin.ModelAdmin):
@@ -70,8 +70,92 @@ class FuncaoAdmin(SetorAdmin):
         return False
 
 
+class TurnoHabitualFilter(admin.SimpleListFilter):
+    title = 'turno habitual hoje'
+    parameter_name = 'turno_habitual'
+
+    def lookups(self, request, model_admin):
+        return [('T1', 'T1'), ('T2', 'T2'), ('T3', 'T3'), ('nao_informado', 'Turno não informado')]
+
+    def queryset(self, request, queryset):
+        if self.value() == 'nao_informado':
+            return queryset.filter(_turno_vigente__isnull=True)
+        if self.value() in ('T1', 'T2', 'T3'):
+            return queryset.filter(_turno_vigente=self.value())
+        return queryset
+
+
+class HistoricoHabitualInline(admin.TabularInline):
+    model = MudancaTurno
+    extra = 0
+    fields = ('vigencia', 'turno_anterior', 'turno_novo', 'registrado_por', 'registrado_em', 'alocacoes_transferidas')
+    readonly_fields = fields
+    can_delete = False
+
+    def has_view_permission(self, request, obj=None):
+        return bool(settings.OP_APP_TURNOS_ENABLED and obj is not None and (
+            administrador(request.user) or coordenador_no_setor(request.user, obj.setor_principal_id)))
+
+    def get_queryset(self, request):
+        return filtrar_escopo(request.user, super().get_queryset(request))
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Trabalhador)
 class TrabalhadorAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, CadastroAdmin):
+    change_form_template = 'admin/organizacao/trabalhador/change_form.html'
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        contexto = dict(extra_context or {})
+        if settings.OP_APP_TURNOS_ENABLED:
+            obj = self.get_object(request, object_id)
+            if obj is not None and (request.user.is_superuser or coordenador_no_setor(request.user, obj.setor_principal_id)):
+                contexto['form_troca_turno'] = TrocaTurnoForm()
+                contexto['url_troca_turno'] = reverse('admin:organizacao_trabalhador_turno', args=[obj.pk])
+        return super().change_view(request, object_id, form_url, contexto)
+
+    def get_form(self, request, obj=None, **kwargs):
+        if settings.OP_APP_TURNOS_ENABLED and obj is None:
+            kwargs['form'] = TrabalhadorCadastroForm
+        return super().get_form(request, obj, **kwargs)
+
+    def get_readonly_fields(self, request, obj=None):
+        campos = super().get_readonly_fields(request, obj)
+        if settings.OP_APP_TURNOS_ENABLED and obj is not None:
+            pode_trocar = request.user.is_superuser or coordenador_no_setor(request.user, obj.setor_principal_id)
+            return (*campos, 'turno_atual', *(('gerenciar_turno',) if pode_trocar else ()))
+        return campos
+
+    @admin.display(description='Atualização de turno')
+    def gerenciar_turno(self, obj):
+        return self.troca_turno(obj)
+
+    def get_inlines(self, request, obj):
+        if settings.OP_APP_TURNOS_ENABLED and obj and (
+                administrador(request.user) or coordenador_no_setor(request.user, obj.setor_principal_id)):
+            return (HistoricoHabitualInline,)
+        return ()
+
+    def get_list_filter(self, request):
+        campos = super().get_list_filter(request)
+        if settings.OP_APP_TURNOS_ENABLED and pode_manter_equipe(request.user):
+            return (*campos, TurnoHabitualFilter)
+        return campos
+
+    def save_model(self, request, obj, form, change):
+        if settings.OP_APP_TURNOS_ENABLED and not change:
+            criar_trabalhador_com_turno(ator=request.user, trabalhador=obj,
+                                       turno=form.cleaned_data.get('turno_inicial'))
+            return
+        return super().save_model(request, obj, form, change)
+
     def get_list_display(self, request):
         campos = super().get_list_display(request)
         if not settings.OP_APP_TURNOS_ENABLED:
@@ -124,7 +208,7 @@ class TrabalhadorAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, CadastroAdm
                 if request.POST.get('confirmacao'):
                     confirmar_troca_turno(ator=request.user, confirmacao=request.POST['confirmacao'], trabalhador_id=trabalhador.pk)
                     self.message_user(request, 'Turno atualizado por vigência; alocações futuras conferidas e transferidas.', messages.SUCCESS)
-                    return redirect('admin:organizacao_trabalhador_changelist')
+                    return redirect('admin:organizacao_trabalhador_change', trabalhador.pk)
                 if form.is_valid():
                     revisao = revisar_troca_turno(ator=request.user, trabalhador_id=trabalhador.pk,
                         turno_id=form.cleaned_data['turno'].pk, vigencia=form.cleaned_data['vigencia'],
