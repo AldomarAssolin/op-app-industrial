@@ -10,7 +10,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from .autorizacao import COORDENADOR, exigir_operacao, exigir_setores
+from .autorizacao import COORDENADOR, exigir_operacao, exigir_setores, coordenador_no_setor, travar_autorizacao
 from .models import MudancaTurno, Trabalhador, Turno
 
 
@@ -19,7 +19,7 @@ def data_operacional_hoje():
     return timezone.localdate(timezone=ZoneInfo('America/Sao_Paulo'))
 
 
-def exigir_coordenador(ator):
+def exigir_coordenador(ator, setor_id=None):
     if not settings.OP_APP_TURNOS_ENABLED:
         raise PermissionDenied('A operação com turnos ainda não está habilitada.')
     from django.contrib.auth import get_user_model
@@ -29,8 +29,10 @@ def exigir_coordenador(ator):
     if atual is None:
         raise PermissionDenied('Operação não autorizada.')
     exigir_operacao(atual, 'organizacao.change_trabalhador')
-    if not atual.groups.filter(name=COORDENADOR).exists():
+    if not atual.is_superuser and not atual.groups.filter(name=COORDENADOR).exists():
         raise PermissionDenied('A troca de turno é responsabilidade do Coordenador.')
+    if setor_id is not None and not atual.is_superuser and not coordenador_no_setor(atual, setor_id):
+        raise PermissionDenied('A troca exige o Coordenador responsável pelo setor.')
 
 
 def _revisao(*, ator, trabalhador_id, turno_id, vigencia, classificar_legado=False):
@@ -41,6 +43,7 @@ def _revisao(*, ator, trabalhador_id, turno_id, vigencia, classificar_legado=Fal
     trabalhador = Trabalhador.objects.filter(pk=trabalhador_id).first()
     if trabalhador is None:
         raise ValidationError('O trabalhador não está mais disponível. Revise novamente.')
+    exigir_coordenador(ator, trabalhador.setor_principal_id)
     exigir_setores(ator, [trabalhador.setor_principal_id])
     if not trabalhador.ativo:
         raise ValidationError('Confira o trabalhador inativo antes de trocar o turno.')
@@ -57,6 +60,8 @@ def _revisao(*, ator, trabalhador_id, turno_id, vigencia, classificar_legado=Fal
                      .select_related('tarefa', 'turno', 'funcao_desempenhada').order_by('pk'))
     # Examinar todas é necessário para rejeitar a troca inteira; nunca exibir as de outro setor.
     exigir_setores(ator, [a.tarefa.setor_id for a in alocacoes])
+    for setor_id in {a.tarefa.setor_id for a in alocacoes}:
+        exigir_coordenador(ator, setor_id)
     if alocacoes:
         exigir_operacao(ator, 'planejamento.change_alocacao')
     if any(a.tarefa.status in (Tarefa.Status.CONCLUIDA, Tarefa.Status.CANCELADA) for a in alocacoes):
@@ -85,6 +90,7 @@ def revisar_troca_turno(*, ator, trabalhador_id, turno_id, vigencia, classificar
 @transaction.atomic
 def confirmar_troca_turno(*, ator, confirmacao, trabalhador_id=None):
     from apps.planejamento.models import Alocacao, Tarefa, HistoricoTurnoAlocacao
+    ator = travar_autorizacao(ator)
     exigir_coordenador(ator)
     try:
         dados = signing.loads(confirmacao, salt='troca-turno', max_age=1800)

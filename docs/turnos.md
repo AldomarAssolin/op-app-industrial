@@ -2,16 +2,13 @@
 
 ## Estado da entrega
 
-O código prepara domínio, migração e revisão/transferência de turnos. A operação NÃO está
-habilitada: `OP_APP_TURNOS_ENABLED=False` mantém os fluxos atuais. Definir True no ambiente
-interrompe a inicialização com mensagem explícita até concluir a autorização da #36.
-A sobreposição usada nos testes automatizados ocorre após carregar configurações e é
-exclusiva do ensaio; não é configuração de implantação nem liberação operacional.
+A #35 prepara domínio, migração e revisão/transferência. A #36 acrescenta autorização
+por setor/turno, disponível por opt-in. `OP_APP_TURNOS_ENABLED=False` permanece o padrão;
+True passa a permitir inicialização. Isso não configura contas nem autoriza implantação.
 
-Não anunciar isolamento do Líder por turno nesta entrega. A #36 ainda deve implementar
-vínculos múltiplos de setor/turno, manutenção pelo Coordenador, restrição de campos da
-tarefa compartilhada, regra corrigida de encerramento, Consulta/Administrador e seus
-critérios de publicação. A #26 e os filtros avançados da #27 dependem dessa validação.
+Consultar [autorizacao-turnos.md](autorizacao-turnos.md) para configuração, regras e aceite
+conjunto. Sem responsabilidade/vínculo explícito, Coordenador/Líder não recebem acesso
+operacional ao ativar a opção. A #26 e os filtros da #27 dependem desse aceite.
 
 ## Domínio preparado
 
@@ -19,7 +16,7 @@ TURNOS contém T1, T2 e T3 como identificações estáveis. Horários são infor
 T1 07h18–17h18; T2 17h–02h; T3 23h–07h, marcado como aproximado. Não há cálculo de horas,
 intervalos, escala, capacidade ou sobreposição por relógio. Administrador técnico pode
 editar referências/inativar quando a operação for habilitada; não renomear ou excluir
-identificações. Não foi concedida permissão nova aos grupos existentes.
+identificações. As permissões adicionais da #36 são documentadas no roteiro de autorização.
 
 A data da alocação permanece a data operacional de início do turno. A referência de
 calendário da troca/habitual é America/Sao_Paulo; não usar mudança de dia UTC para impedir
@@ -40,7 +37,7 @@ quando a operação estiver habilitada, e deve corresponder à referência vigen
 ## Troca revisada pelo Coordenador
 
 O serviço exige usuário ativo, grupo Coordenador, permissão de alterar trabalhador e
-setor autorizado. Não há exceção automática de troca para superusuário sem esse grupo.
+responsabilidade explícita no setor. O superusuário técnico pode executar a recuperação/configuração inicial; o Administrador operacional não ganha essa exceção.
 Quando houver transferência, exige também alteração de alocações e acesso aos setores de
 todas as tarefas afetadas, sem revelar detalhes de outros setores.
 
@@ -86,14 +83,14 @@ Esses eventos são anexados pelos serviços, sem edição direta no Admin.
 26 testes novos foram preparados: referências, calendário brasileiro, vigência futura,
 transferência conjunta, revisão alterada/expirada/adulterada, reenvio, revogação de acesso,
 rollback, papel/setor, legado explícito, inativos/encerradas, unicidade, histórico,
-formulários/quadros, migração e trava de ativação. Três casos exigem PostgreSQL:
+formulários/quadros e migração. O teste de configuração passou a validar o opt-in da #36. Três casos exigem PostgreSQL:
 confirmações simultâneas, turnos distintos para a mesma pessoa/data e exclusão em lote
 concorrente com edição entre tarefas. Os demais passaram
 localmente em SQLite; PostgreSQL e suíte completa são conferidos no CI.
 
 Validação visual e de uso dos caminhos preparados ocorrerá em ensaio sintético junto
-com a #36, antes de qualquer ativação. Não afirmar que os testes desta entrega validam
-restrição do Líder por turno ou impedimento de encerramento compartilhado: isso é #36.
+com a #36, antes de qualquer ativação em produção. A cobertura adicional de isolamento
+e encerramento compartilhado está em `test_autorizacao_turnos.py`.
 
 ## Migração e reversão
 

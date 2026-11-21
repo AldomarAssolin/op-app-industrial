@@ -6,12 +6,13 @@ from django.db import transaction
 
 from .models import Alocacao, exigir_permissao
 from apps.organizacao.models import Setor
-from apps.organizacao.autorizacao import setores_do_usuario, filtrar_escopo
+from apps.organizacao.autorizacao import setores_do_usuario, filtrar_escopo, travar_autorizacao
 
 
 @transaction.atomic
 def alocar_dias(*, ator, trabalhador, tarefa, datas, funcao_desempenhada, observacao="", turno=None):
     """Cria todos os dias ou nenhum; repetição exata é erro, não sobrescrita."""
+    ator = travar_autorizacao(ator)
     exigir_permissao(ator, "add")
     dias = list(datas)
     if not dias or any(type(dia) is not date for dia in dias):

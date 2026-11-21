@@ -190,9 +190,5 @@ OP_APP_PRODUCT_HOME_ENABLED = os.getenv("OP_APP_PRODUCT_HOME_ENABLED", "False").
 LOGIN_URL = "login_operacional"
 LOGIN_REDIRECT_URL = "entrada_operacional"
 
-# Preparação da #35: só testes podem sobrepor esta configuração por enquanto.
+# Opt-in: configurar responsáveis/vínculos e validar antes de habilitar em produção.
 OP_APP_TURNOS_ENABLED = os.getenv("OP_APP_TURNOS_ENABLED", "False").lower() == "true"
-if OP_APP_TURNOS_ENABLED:
-    raise ImproperlyConfigured(
-        "Turnos ainda não podem ser habilitados: concluir autorização da issue #36 e validação conjunta."
-    )

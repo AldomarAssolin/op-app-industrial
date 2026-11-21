@@ -27,6 +27,7 @@ class Command(BaseCommand):
         perfis["Administrador"] = copy.deepcopy(perfis["Coordenador"])
         for modelo in ("setor", "funcao", "trabalhador"):
             perfis["Administrador"]["organizacao"][modelo] = "view add change delete"
+        perfis['Coordenador']['organizacao'].update(vinculoliderturno='view add change', historicoacessoturno='view', mudancaturno='view')
         for nome, apps in perfis.items():
             grupo, _ = Group.objects.get_or_create(name=nome)
             permissoes = []

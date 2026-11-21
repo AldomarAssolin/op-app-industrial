@@ -5,14 +5,16 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
+from django.utils.html import format_html_join
 from django.urls import path, reverse
 
 from .orientacao import proximo_passo
-from .forms import AlocacaoMultidiaForm
-from .models import Alocacao, HistoricoTarefa, Tarefa, exigir_permissao
+from .forms import AlocacaoMultidiaForm, TarefaTurnosForm
+from .models import Alocacao, HistoricoTarefa, Tarefa, exigir_permissao, TurnoTarefa, ObservacaoTarefaTurno
 from .services import alocar_dias
-from apps.organizacao.admin_escopo import EscopoAdminMixin
-from apps.organizacao.autorizacao import filtrar_escopo, exigir_escopo_objeto
+from apps.organizacao.admin_escopo import EscopoAdminMixin, GravacaoValidadaAdminMixin
+from apps.organizacao.autorizacao import (filtrar_escopo, exigir_escopo_objeto, administrador,
+    coordenador_no_setor, setores_do_usuario, turnos_permitidos, travar_autorizacao)
 
 
 class HistoricoTarefaInline(EscopoAdminMixin, admin.TabularInline):
@@ -21,6 +23,13 @@ class HistoricoTarefaInline(EscopoAdminMixin, admin.TabularInline):
     fields = ("registrado_em", "registrado_por", "status", "inicio_previsto", "fim_previsto", "setor")
     readonly_fields = fields
     can_delete = False
+
+    def get_fields(self, request, obj=None):
+        campos = super().get_fields(request, obj)
+        return (*campos, 'turno_operacao') if settings.OP_APP_TURNOS_ENABLED else campos
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.get_fields(request, obj)
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -32,8 +41,34 @@ class HistoricoTarefaInline(EscopoAdminMixin, admin.TabularInline):
         return False
 
 
+class TurnoTarefaInline(admin.TabularInline):
+    model = TurnoTarefa
+    fields = ('turno', 'ativo')
+    extra = 0
+    can_delete = False
+
+    def _coord(self, request, obj):
+        return settings.OP_APP_TURNOS_ENABLED and (administrador(request.user) or (
+            obj is not None and coordenador_no_setor(request.user, obj.setor_id)))
+
+    def has_add_permission(self, request, obj=None):
+        return self._coord(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        return self._coord(request, obj)
+
+    def has_view_permission(self, request, obj=None):
+        return self._coord(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_queryset(self, request):
+        return filtrar_escopo(request.user, super().get_queryset(request))
+
+
 @admin.register(Tarefa)
-class TarefaAdmin(EscopoAdminMixin, admin.ModelAdmin):
+class TarefaAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, admin.ModelAdmin):
     list_display = ("id", "titulo", "setor", "inicio_previsto", "fim_previsto", "status")
     list_display_links = ("id", "titulo")
     list_filter = (("setor", admin.RelatedOnlyFieldListFilter), "status", "inicio_previsto", "fim_previsto")
@@ -43,8 +78,89 @@ class TarefaAdmin(EscopoAdminMixin, admin.ModelAdmin):
     fields = ("titulo", "descricao", "setor", ("inicio_previsto", "fim_previsto"),
               "status", "observacoes")
 
+    def _restrito(self, request, obj):
+        if not settings.OP_APP_TURNOS_ENABLED or administrador(request.user):
+            return False
+        if obj is None:
+            from apps.organizacao.autorizacao import pode_manter_equipe
+            return not pode_manter_equipe(request.user)
+        return not coordenador_no_setor(request.user, obj.setor_id)
+
+    def get_fields(self, request, obj=None):
+        campos = super().get_fields(request, obj)
+        if not settings.OP_APP_TURNOS_ENABLED:
+            return campos
+        return (*campos, 'turno_operacao', 'observacao_turno', 'historico_observacoes')
+
+    def get_readonly_fields(self, request, obj=None):
+        if not settings.OP_APP_TURNOS_ENABLED:
+            return super().get_readonly_fields(request, obj)
+        gerais = ('titulo', 'descricao', 'setor', 'inicio_previsto', 'fim_previsto', 'observacoes') if obj and self._restrito(request, obj) else ()
+        if obj is None and self._restrito(request, obj):
+            gerais = ('observacoes',)
+        return (*gerais, 'historico_observacoes')
+
+    def get_inlines(self, request, obj):
+        if settings.OP_APP_TURNOS_ENABLED and obj and not self._restrito(request, obj):
+            return (HistoricoTarefaInline, TurnoTarefaInline)
+        return (HistoricoTarefaInline,)
+
+    def get_form(self, request, obj=None, **kwargs):
+        if settings.OP_APP_TURNOS_ENABLED:
+            kwargs['form'] = TarefaTurnosForm
+        base = super().get_form(request, obj, **kwargs)
+        if not settings.OP_APP_TURNOS_ENABLED:
+            return base
+        usuario = request.user
+        restrito = self._restrito(request, obj)
+        setores = setores_do_usuario(usuario)
+        codigos = set()
+        for setor in setores:
+            codigos |= turnos_permitidos(usuario, setor.pk)
+        from apps.organizacao.models import Turno
+        class FormDaOperacao(base):
+            def __init__(self, *args, **kw):
+                super().__init__(*args, **kw)
+                self.fields['turno_operacao'].queryset = Turno.objects.filter(pk__in=codigos, ativo=True)
+                self.fields['turno_operacao'].required = bool(obj is None or restrito)
+                if obj is not None and restrito and 'status' in self.fields:
+                    proximos = {Tarefa.Status.PENDENTE: Tarefa.Status.EM_ANDAMENTO,
+                                Tarefa.Status.EM_ANDAMENTO: Tarefa.Status.CONCLUIDA}
+                    permitidos = {obj.status, proximos.get(obj.status)}
+                    self.fields['status'].choices = [(v, r) for v, r in Tarefa.Status.choices if v in permitidos]
+        return FormDaOperacao
+
+    @admin.display(description='Observações dos turnos autorizados')
+    def historico_observacoes(self, obj):
+        if not obj.pk:
+            return 'As observações serão registradas após a criação.'
+        # O queryset é preparado por change_view, sem guardar usuário no ModelAdmin compartilhado.
+        registros = getattr(obj, '_observacoes_autorizadas', [])
+        return format_html_join('', '<p>{} · {} · {}</p>', ((r.turno_id, r.registrado_em, r.texto) for r in registros)) or 'Nenhuma observação disponível.'
+
+    def get_object(self, request, object_id, from_field=None):
+        obj = super().get_object(request, object_id, from_field)
+        if obj is not None and settings.OP_APP_TURNOS_ENABLED:
+            obj._observacoes_autorizadas = list(filtrar_escopo(request.user, ObservacaoTarefaTurno.objects.filter(tarefa=obj)))
+        return obj
+
     def save_model(self, request, obj, form, change):
-        obj.save(ator=request.user)
+        turno = form.cleaned_data.get('turno_operacao') if settings.OP_APP_TURNOS_ENABLED else None
+        obj.save(ator=request.user, turno_operacao=turno)
+        if settings.OP_APP_TURNOS_ENABLED and form.cleaned_data.get('observacao_turno'):
+            if turno is None:
+                raise ValidationError('Selecione o turno da observação.')
+            ObservacaoTarefaTurno(tarefa=obj, turno=turno, texto=form.cleaned_data['observacao_turno']).save(ator=request.user)
+
+    def save_formset(self, request, form, formset, change):
+        if settings.OP_APP_TURNOS_ENABLED and formset.model == TurnoTarefa:
+            for instancia in formset.save(commit=False):
+                instancia.save(ator=request.user)
+            return
+        return super().save_formset(request, form, formset, change)
+
+    def has_add_permission(self, request):
+        return super().has_add_permission(request) and (not settings.OP_APP_TURNOS_ENABLED or setores_do_usuario(request.user).exists())
 
     def has_delete_permission(self, request, obj=None):
         # Use cancelamento; toda tarefa criada já possui histórico protegido.
@@ -64,7 +180,10 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'turno' and settings.OP_APP_TURNOS_ENABLED:
             from apps.organizacao.models import Turno
-            kwargs.update(queryset=Turno.objects.filter(ativo=True), required=True)
+            permitidos = set()
+            for setor in setores_do_usuario(request.user):
+                permitidos |= turnos_permitidos(request.user, setor.pk)
+            kwargs.update(queryset=Turno.objects.filter(ativo=True, pk__in=permitidos), required=True)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_exclude(self, request, obj=None):
@@ -150,7 +269,8 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     @transaction.atomic
     def delete_queryset(self, request, queryset):
         from apps.organizacao.models import Trabalhador
-        exigir_permissao(request.user, 'delete')
+        ator = travar_autorizacao(request.user)
+        exigir_permissao(ator, 'delete')
         registros = list(queryset.order_by('pk'))
         tarefas = {obj.tarefa_id for obj in registros}
         trabalhadores = {obj.trabalhador_id for obj in registros}

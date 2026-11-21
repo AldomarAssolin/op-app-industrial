@@ -30,8 +30,20 @@ class AlocacaoMultidiaForm(forms.Form):
         super().__init__(*args, **kwargs)
         if not settings.OP_APP_TURNOS_ENABLED:
             self.fields.pop('turno')
+        referencia = None
+        try:
+            referencia = forms.DateField().clean(self.data.get('inicio'))
+        except forms.ValidationError:
+            pass
         for campo in ("trabalhador", "tarefa"):
-            self.fields[campo].queryset = filtrar_escopo(ator, self.fields[campo].queryset)
+            self.fields[campo].queryset = filtrar_escopo(ator, self.fields[campo].queryset,
+                data_referencia=referencia if campo == 'trabalhador' else None)
+        if settings.OP_APP_TURNOS_ENABLED:
+            from apps.organizacao.autorizacao import turnos_permitidos, setores_do_usuario
+            permitidos = set()
+            for setor in setores_do_usuario(ator):
+                permitidos |= turnos_permitidos(ator, setor.pk)
+            self.fields['turno'].queryset = Turno.objects.filter(ativo=True, pk__in=permitidos)
 
     def clean(self):
         dados = super().clean()
@@ -66,3 +78,12 @@ class QuadroSemanalForm(forms.Form):
         dia = self.cleaned_data["semana"]
         semana_de(dia)
         return dia
+
+
+class TarefaTurnosForm(forms.ModelForm):
+    turno_operacao = forms.ModelChoiceField(label='Turno desta operação', queryset=Turno.objects.filter(ativo=True), required=False)
+    observacao_turno = forms.CharField(label='Acrescentar observação do turno', required=False, widget=forms.Textarea)
+
+    class Meta:
+        model = Tarefa
+        fields = '__all__'

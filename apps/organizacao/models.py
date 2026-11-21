@@ -58,6 +58,22 @@ class Funcao(CadastroNomeado):
 
 
 class Trabalhador(CadastroNomeado):
+    def save(self, *args, ator=None, **kwargs):
+        from django.conf import settings
+        if not settings.OP_APP_TURNOS_ENABLED or ator is None:
+            return super().save(*args, **kwargs)
+        from django.db import transaction
+        from django.core.exceptions import PermissionDenied
+        from .autorizacao import travar_autorizacao, exigir_operacao, administrador, coordenador_no_setor
+        with transaction.atomic():
+            ator = travar_autorizacao(ator)
+            anterior = type(self).objects.select_for_update().filter(pk=self.pk).first() if self.pk else None
+            exigir_operacao(ator, 'organizacao.change_trabalhador' if anterior else 'organizacao.add_trabalhador')
+            if not administrador(ator) and not (coordenador_no_setor(ator, self.setor_principal_id)
+                    and (anterior is None or coordenador_no_setor(ator, anterior.setor_principal_id))):
+                raise PermissionDenied('Alteração do trabalhador exige o Coordenador dos setores envolvidos.')
+            return super().save(*args, **kwargs)
+
     def turno_em(self, dia):
         mudanca = self.mudancas_turno.filter(vigencia__lte=dia).select_related('turno_novo').order_by('-vigencia', '-pk').first()
         return mudanca.turno_novo if mudanca else None
@@ -159,3 +175,69 @@ class MudancaTurno(models.Model):
     def delete(self, *args, **kwargs):
         from django.core.exceptions import ValidationError
         raise ValidationError('O histórico de turno deve ser preservado.')
+
+
+class ResponsavelSetor(models.Model):
+    setor = models.OneToOneField(Setor, on_delete=models.PROTECT, related_name='responsavel_operacional')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='responsabilidades_setor')
+
+    class Meta:
+        verbose_name = 'coordenador responsável pelo setor'
+        verbose_name_plural = 'coordenadores responsáveis pelos setores'
+
+    def __str__(self):
+        return f'{self.setor} · {self.usuario}'
+
+    def save(self, *args, ator=None, **kwargs):
+        from .acessos_turno import salvar_responsavel
+        return salvar_responsavel(self, ator=ator, args=args, kwargs=kwargs)
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Substitua o responsável; preserve o histórico.')
+
+
+class VinculoLiderTurno(models.Model):
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='vinculos_turno')
+    setor = models.ForeignKey(Setor, on_delete=models.PROTECT, related_name='vinculos_lider_turno')
+    turno = models.ForeignKey(Turno, on_delete=models.PROTECT, related_name='+')
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'acesso de líder a setor e turno'
+        verbose_name_plural = 'acessos de líderes a setores e turnos'
+        constraints = [models.UniqueConstraint(fields=('usuario', 'setor', 'turno'), name='lider_setor_turno_unico')]
+
+    def __str__(self):
+        return f'{self.usuario} · {self.setor} · {self.turno}'
+
+    def save(self, *args, ator=None, **kwargs):
+        from .acessos_turno import salvar_vinculo
+        return salvar_vinculo(self, ator=ator, args=args, kwargs=kwargs)
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Inative o vínculo; preserve o histórico.')
+
+
+class HistoricoAcessoTurno(models.Model):
+    setor = models.ForeignKey(Setor, on_delete=models.PROTECT, related_name='+')
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    registrado_em = models.DateTimeField(auto_now_add=True)
+    tipo = models.CharField(max_length=30)
+    alteracao = models.JSONField()
+
+    class Meta:
+        ordering = ('registrado_em', 'pk')
+        verbose_name = 'registro de acesso por turno'
+        verbose_name_plural = 'histórico de acessos por turno'
+
+    def save(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        if not self._state.adding:
+            raise ValidationError('O histórico de acesso não pode ser alterado.')
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('O histórico de acesso deve ser preservado.')

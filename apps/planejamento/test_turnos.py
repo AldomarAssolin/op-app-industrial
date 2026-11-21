@@ -13,7 +13,7 @@ from django.db import close_old_connections, connection
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
-from apps.organizacao.models import Funcao, MudancaTurno, Setor, Trabalhador, Turno, UsuarioSetor
+from apps.organizacao.models import Funcao, MudancaTurno, Setor, Trabalhador, Turno, UsuarioSetor, ResponsavelSetor
 from apps.organizacao.turnos import revisar_troca_turno, confirmar_troca_turno
 from .models import Alocacao, HistoricoTurnoAlocacao, Tarefa
 from .services import alocar_dias, montar_quadro_semanal
@@ -32,6 +32,8 @@ class DadosTurnos:
         self.lider.groups.add(Group.objects.get(name='Líder'))
         self.setor = Setor.objects.create(nome='Setor autorizado')
         self.outro = Setor.objects.create(nome='Setor reservado')
+        self.tecnico = get_user_model().objects.create_superuser(username='tecnico_turnos')
+        ResponsavelSetor(setor=self.setor, usuario=self.coord).save(ator=self.tecnico)
         for u in (self.coord, self.lider):
             UsuarioSetor.objects.create(usuario=u, setor=self.setor)
         self.funcao = Funcao.objects.create(nome='Soldagem')
@@ -151,7 +153,7 @@ class TurnosTests(DadosTurnos, TestCase):
 
     def test_coordenador_sem_setor_ou_permissao_revogada_nao_confirma(self):
         revisao = self.revisar()
-        UsuarioSetor.objects.filter(usuario=self.coord).delete()
+        ResponsavelSetor.objects.filter(usuario=self.coord).delete()
         with self.assertRaises(PermissionDenied):
             self.confirmar(revisao)
         self.assertFalse(MudancaTurno.objects.exists())
@@ -198,8 +200,9 @@ class TurnosTests(DadosTurnos, TestCase):
         self.confirmar(self.revisar())
         outra = self.criar_tarefa('Reservada', self.outro)
         UsuarioSetor.objects.create(usuario=self.coord, setor=self.outro)
+        ResponsavelSetor(setor=self.outro, usuario=self.coord).save(ator=self.tecnico)
         self.alocar(self.hoje + timedelta(days=1), outra)
-        UsuarioSetor.objects.filter(usuario=self.coord, setor=self.outro).delete()
+        ResponsavelSetor.objects.filter(setor=self.outro).delete()
         with self.assertRaises(PermissionDenied):
             self.revisar(self.t2, self.hoje + timedelta(days=1))
         self.assertEqual(Alocacao.objects.get().turno_id, 'T1')
@@ -377,7 +380,7 @@ class TurnosConcorrenciaTests(DadosTurnos, TransactionTestCase):
 
 
 class AtivacaoTurnosTests(TestCase):
-    def test_configuracao_de_producao_recusa_ativacao_antes_da_36(self):
+    def test_configuracao_disponibiliza_opt_in_de_turnos(self):
         import os
         import subprocess
         import sys
@@ -385,8 +388,7 @@ class AtivacaoTurnosTests(TestCase):
         env = {**os.environ, 'OP_APP_TURNOS_ENABLED':'True', 'DJANGO_SETTINGS_MODULE':'config.settings'}
         r = subprocess.run([sys.executable, 'manage.py', 'check'], cwd=settings.BASE_DIR,
                            env=env, capture_output=True, text=True, timeout=15)
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn('concluir autorização da issue #36', r.stderr)
+        self.assertEqual(r.returncode, 0, r.stderr)
 
 
 class CalendarioOperacionalTests(TestCase):
@@ -401,7 +403,7 @@ class MigracaoTurnosTests(TransactionTestCase):
     def test_legado_preservado_e_reversao_bloqueada_apos_classificacao(self):
         from django.db.migrations.executor import MigrationExecutor
         antigos = [('organizacao', '0002_usuariosetor'), ('planejamento', '0003_historicotarefa_registrado_por')]
-        novos = [('organizacao', '0003_turno_mudancaturno'), ('planejamento', '0004_alocacao_turno_historicoturnoalocacao')]
+        novos = [('organizacao', '0004_historicoacessoturno_responsavelsetor_and_more'), ('planejamento', '0005_historicotarefa_turno_operacao_observacaotarefaturno_and_more')]
         executor = MigrationExecutor(connection)
         executor.migrate(antigos)
         try:
