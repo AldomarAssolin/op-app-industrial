@@ -4,6 +4,7 @@
 {% block extrastyle %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'planejamento/css/admin.css' %}">
+  <link rel="stylesheet" href="{% static 'planejamento/css/orientacao.css' %}">
 {% endblock %}
 
 {% block bodyclass %}{{ block.super }}{% if request.resolver_match.url_name == 'index' %} op-admin-home{% elif request.resolver_match.url_name == 'app_list' %} op-admin-app-index{% endif %}{% endblock %}

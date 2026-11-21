@@ -1,0 +1,7 @@
+
+/* Shared first-use guidance: scoped to its own component. */
+.op-orientacao { background: var(--darkened-bg, #edf3f7); color: var(--body-fg, #182d3c); border: 1px solid var(--border-color, #b8c9d5); border-radius: 8px; padding: 20px; margin-block: 22px; overflow-wrap: anywhere; }
+.op-orientacao h2 { background: none; color: inherit; padding: 0; margin: 0 0 12px; font-size: 1.15rem; }
+.op-orientacao p { margin: 8px 0; }
+.op-orientacao .op-sequencia { font-size: .85rem; color: var(--body-quiet-color, #4f6473); }
+@media print { .op-orientacao { display: none; } }

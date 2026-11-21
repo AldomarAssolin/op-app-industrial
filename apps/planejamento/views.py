@@ -6,6 +6,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from .views_operacionais import navegacao_operacional
+from .orientacao import proximo_passo
+from .models import Alocacao
+from apps.organizacao.autorizacao import filtrar_escopo
 from .forms import QuadroSemanalForm
 from .services import montar_quadro_semanal
 
@@ -24,6 +27,11 @@ def quadro_semanal(request):
     quadro = montar_quadro_semanal(ator=request.user, semana=dados["semana"],
                                   setor_id=setor_id, fim_semana=dados["fim_semana"])
     contexto.update(quadro)
+    if not quadro['linhas']:
+        contexto['orientacao'] = proximo_passo(request.user, setor_id=setor_id, semana=dados['semana'])
+        todos = filtrar_escopo(request.user, Alocacao.objects.all())
+        contexto['semana_tem_outro_setor'] = bool(setor_id and todos.filter(
+            data__range=(quadro['inicio'], quadro['fim'])).exists())
     for direcao in ("anterior", "proxima"):
         dia = quadro[direcao]
         consulta = {"semana": dia.isoformat()} if dia else None

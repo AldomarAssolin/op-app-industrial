@@ -87,7 +87,8 @@
             </tr>{% endfor %}</tbody>
           </table>
         </div>
-      {% else %}<div class="empty"><strong>Nenhuma alocação nesta semana.</strong><p>Não há registros para a semana e os setores permitidos selecionados.</p></div>{% endif %}
+      {% else %}<div class="empty"><strong>Nenhuma alocação nesta semana.</strong><p>{% if semana_tem_outro_setor %}O setor selecionado não tem alocações nesta semana. Experimente outro setor permitido ou limpe o filtro.{% else %}Não há registros para a semana e os setores permitidos selecionados. Consulte outra semana ou confira os próximos passos.{% endif %}</p></div>{% endif %}
+      {% if not linhas %}{% include "planejamento/operacional/orientacao.html" %}{% endif %}
       <p class="note">Cada linha reúne trabalhador, função desempenhada e tarefa. Dias vazios não indicam disponibilidade. Alocação não representa jornada exclusiva nem contabiliza horas.</p>
     {% endif %}
 {% endblock %}
