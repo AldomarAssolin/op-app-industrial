@@ -103,3 +103,15 @@ participação, observações por turno ou histórico já classificado. Após us
 imagem nem desabilitar a opção (isso restaura o escopo anterior por setor): recuperar imagem
 e banco compatíveis em cópia e decidir a reversão operacional explicitamente. Obter backup
 verificado e autorização de implantação antes de ativar em produção.
+
+## Correções da revisão da PR
+
+Mover uma tarefa exige responsabilidade no setor original e no destino. Uma conta que é
+Coordenador em A e apenas Líder em B não pode trazer uma tarefa de B para A para obter
+edição de dados gerais ou cancelar/reabrir. O teste verifica preservação do setor, título,
+status e histórico na rejeição.
+
+Ao abrir a edição de alocação, as opções de trabalhador usam a data do registro, não o
+habitual de hoje. Testes GET/POST cobrem alocação passada e futura após mudança de habitual,
+com edição autorizada de observação sem perder o trabalhador selecionado. As URLs dos
+novos históricos também ficam fechadas quando a opção de turnos está desabilitada.

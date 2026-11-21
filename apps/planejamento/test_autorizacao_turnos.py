@@ -361,6 +361,48 @@ class AutorizacaoTurnosTests(TestCase):
         self.assertIn(self.wb.pk, filtrar_escopo(self.c1, Trabalhador.objects.all()).values_list('pk', flat=True))
 
 
+    def test_mover_tarefa_exige_responsabilidade_no_setor_original_e_destino(self):
+        self.c1.groups.add(Group.objects.get(name='Líder'))
+        UsuarioSetor.objects.create(usuario=self.c1, setor=self.b)
+        VinculoLiderTurno(usuario=self.c1, setor=self.b, turno=self.t1).save(ator=self.c2)
+        original = Tarefa.objects.get(pk=self.fb.pk)
+        historicos = original.historico.count()
+        original.setor = self.a
+        original.titulo = 'Apropriação de tarefa'
+        original.status = Tarefa.Status.CANCELADA
+        with self.assertRaises(PermissionDenied):
+            original.save(ator=self.c1, turno_operacao=self.t1)
+        original.refresh_from_db()
+        self.assertEqual(original.setor_id, self.b.pk)
+        self.assertEqual(original.titulo, 'Tarefa B oculta')
+        self.assertEqual(original.status, Tarefa.Status.PENDENTE)
+        self.assertEqual(original.historico.count(), historicos)
+
+    def test_edicao_de_alocacao_usa_data_do_registro_no_get_e_no_post(self):
+        vigencia = self.hoje + timedelta(days=1)
+        revisao = revisar_troca_turno(ator=self.c1, trabalhador_id=self.w1.pk,
+                                     turno_id='T2', vigencia=vigencia)
+        confirmar_troca_turno(ator=self.c1, confirmacao=revisao['confirmacao'])
+        futura = self.alloc(self.w1, self.f2, self.c1, self.t2, vigencia)
+        casos = ((self.al1, self.l1, self.hoje + timedelta(days=2)),
+                 (futura, self.l2, self.hoje))
+        for alocacao, lider, hoje in casos:
+            with self.subTest(turno=alocacao.turno_id), patch('apps.organizacao.turnos.timezone.localdate', return_value=hoje):
+                self.client.force_login(lider)
+                url = reverse('admin:planejamento_alocacao_change', args=[alocacao.pk])
+                pagina = self.client.get(url)
+                formulario = pagina.context['adminform'].form
+                self.assertEqual(pagina.status_code, 200)
+                self.assertIn(self.w1.pk, formulario.fields['trabalhador'].queryset.values_list('pk', flat=True))
+                resposta = self.client.post(url, {
+                    'trabalhador':self.w1.pk, 'tarefa':alocacao.tarefa_id,
+                    'data':alocacao.data.isoformat(), 'turno':alocacao.turno_id,
+                    'funcao_desempenhada':self.funcao.pk, 'observacao':'Atualização autorizada'})
+                self.assertEqual(resposta.status_code, 302)
+                alocacao.refresh_from_db()
+                self.assertEqual(alocacao.observacao, 'Atualização autorizada')
+                self.assertEqual(alocacao.trabalhador_id, self.w1.pk)
+
     def test_revogacao_invalida_gravacao_aberta_com_usuario_antigo(self):
         self.client.force_login(self.l1)
         self.assertEqual(self.client.get(reverse('admin:planejamento_alocacao_add')).status_code, 200)

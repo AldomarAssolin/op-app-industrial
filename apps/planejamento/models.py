@@ -118,7 +118,9 @@ class Tarefa(models.Model):
             if settings.OP_APP_TURNOS_ENABLED and turno_operacao is not None and ator is None:
                 raise PermissionDenied('Informe o autor da operação por turno.')
             if settings.OP_APP_TURNOS_ENABLED and ator is not None:
-                irrestrito = administrador(ator) or coordenador_no_setor(ator, self.setor_id)
+                irrestrito = administrador(ator) or (
+                    coordenador_no_setor(ator, self.setor_id)
+                    and (anterior is None or coordenador_no_setor(ator, anterior.setor_id)))
                 if not irrestrito:
                     if turno_operacao is None:
                         raise PermissionDenied('Informe o turno autorizado desta operação.')

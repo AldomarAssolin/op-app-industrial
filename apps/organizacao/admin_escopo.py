@@ -52,6 +52,19 @@ class EscopoAdminMixin:
     def has_delete_permission(self, request, obj=None):
         return self._pode(request, "delete", obj) and super().has_delete_permission(request, obj)
 
+    def get_form(self, request, obj=None, **kwargs):
+        # Referência restrita à construção deste formulário, nunca ao ModelAdmin compartilhado.
+        anterior = getattr(request, '_op_data_alocacao', None)
+        if self.model._meta.label_lower == 'planejamento.alocacao' and obj is not None:
+            request._op_data_alocacao = obj.data
+        try:
+            return super().get_form(request, obj, **kwargs)
+        finally:
+            if anterior is None:
+                request.__dict__.pop('_op_data_alocacao', None)
+            else:
+                request._op_data_alocacao = anterior
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         modelo = db_field.remote_field.model
         if modelo._meta.label_lower in {
@@ -61,7 +74,9 @@ class EscopoAdminMixin:
             if modelo._meta.label_lower == 'organizacao.trabalhador':
                 from django import forms
                 try:
-                    referencia = forms.DateField().clean(request.POST.get('data') or request.POST.get('inicio'))
+                    referencia = forms.DateField().clean(
+                        request.POST.get('data') or request.POST.get('inicio')
+                        or getattr(request, '_op_data_alocacao', None))
                 except forms.ValidationError:
                     pass
             kwargs["queryset"] = filtrar_escopo(request.user, modelo._default_manager.all(), data_referencia=referencia)
