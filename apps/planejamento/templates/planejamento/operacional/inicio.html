@@ -5,7 +5,7 @@
 {% if setores_permitidos %}
 <section aria-labelledby="seus-setores">
   <h2 id="seus-setores">Seus setores</h2>
-  <ul class="sector-list">{% for setor in setores_permitidos %}<li>{{ setor.nome }}</li>{% endfor %}</ul>
+  {% if turnos_habilitados %}<ul class="sector-list">{% for item in setores_com_turnos %}<li>{{ item.setor.nome }} — {{ item.turnos|join:", " }}</li>{% endfor %}</ul>{% else %}<ul class="sector-list">{% for setor in setores_permitidos %}<li>{{ setor.nome }}</li>{% endfor %}</ul>{% endif %}
 </section>
 {% include "planejamento/operacional/orientacao.html" %}
 <div class="work-actions">

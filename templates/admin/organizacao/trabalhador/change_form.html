@@ -1,0 +1,15 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+{% if form_troca_turno %}
+<section class="module aligned" aria-labelledby="troca-turno-titulo">
+  <h2 id="troca-turno-titulo">Atualizar turno habitual</h2>
+  <p>Escolha o novo turno e a vigência. Antes de confirmar, confira as alocações futuras que serão transferidas. Salve alterações do cadastro antes de iniciar a revisão.</p>
+  <form method="post" action="{{ url_troca_turno }}">
+    {% csrf_token %}
+    {{ form_troca_turno.as_p }}
+    <button type="submit">Revisar mudança de turno</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

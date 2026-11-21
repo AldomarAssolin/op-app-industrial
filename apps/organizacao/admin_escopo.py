@@ -52,12 +52,35 @@ class EscopoAdminMixin:
     def has_delete_permission(self, request, obj=None):
         return self._pode(request, "delete", obj) and super().has_delete_permission(request, obj)
 
+    def get_form(self, request, obj=None, **kwargs):
+        # Referência restrita à construção deste formulário, nunca ao ModelAdmin compartilhado.
+        anterior = getattr(request, '_op_data_alocacao', None)
+        if self.model._meta.label_lower == 'planejamento.alocacao' and obj is not None:
+            request._op_data_alocacao = obj.data
+        try:
+            return super().get_form(request, obj, **kwargs)
+        finally:
+            if anterior is None:
+                request.__dict__.pop('_op_data_alocacao', None)
+            else:
+                request._op_data_alocacao = anterior
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         modelo = db_field.remote_field.model
         if modelo._meta.label_lower in {
             "organizacao.setor", "organizacao.trabalhador", "planejamento.tarefa",
         }:
-            kwargs["queryset"] = filtrar_escopo(request.user, modelo._default_manager.all())
+            referencia = None
+            if modelo._meta.label_lower == 'organizacao.trabalhador':
+                from django import forms
+                try:
+                    referencia = forms.DateField().clean(
+                        request.POST.get('data') or request.POST.get('inicio')
+                        or request.GET.get('data') or request.GET.get('inicio')
+                        or getattr(request, '_op_data_alocacao', None))
+                except forms.ValidationError:
+                    pass
+            kwargs["queryset"] = filtrar_escopo(request.user, modelo._default_manager.all(), data_referencia=referencia)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
@@ -67,7 +90,10 @@ class EscopoAdminMixin:
         if change:
             anterior = type(obj).objects.get(pk=obj.pk)
             exigir_escopo_objeto(request.user, anterior)
-        super().save_model(request, obj, form, change)
+        if self.model._meta.label_lower == 'organizacao.trabalhador':
+            obj.save(ator=request.user)
+        else:
+            super().save_model(request, obj, form, change)
 
     def delete_model(self, request, obj):
         exigir_operacao(request.user, f"{obj._meta.app_label}.delete_{obj._meta.model_name}")
@@ -80,3 +106,31 @@ class EscopoAdminMixin:
         if permitidos.count() != queryset.count():
             raise PermissionDenied("Seleção fora do escopo autorizado.")
         super().delete_queryset(request, permitidos)
+
+
+class GravacaoValidadaAdminMixin:
+    """Reapresenta conflitos de gravação sem confirmar dados ou logs parciais."""
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        from django.core.exceptions import ValidationError
+        try:
+            return super().changeform_view(request, object_id, form_url, extra_context)
+        except ValidationError as erro:
+            if request.method != 'POST':
+                raise
+            request._op_erro_gravacao = ' '.join(erro.messages)
+            try:
+                return super().changeform_view(request, object_id, form_url, extra_context)
+            finally:
+                del request._op_erro_gravacao
+
+    def get_form(self, request, obj=None, **kwargs):
+        base = super().get_form(request, obj, **kwargs)
+        erro = getattr(request, '_op_erro_gravacao', None)
+        if erro is None:
+            return base
+        class FormComConflito(base):
+            def clean(self):
+                dados = super().clean()
+                self.add_error(None, erro)
+                return dados
+        return FormComConflito

@@ -6,7 +6,8 @@ from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
 from django.db.models import F, Q
 
-from apps.organizacao.autorizacao import exigir_operacao, exigir_escopo_objeto
+from apps.organizacao.autorizacao import (exigir_operacao, exigir_escopo_objeto, travar_autorizacao,
+    administrador, coordenador_no_setor, exigir_setor_turno, turnos_permitidos, filtrar_escopo)
 
 
 class Tarefa(models.Model):
@@ -90,13 +91,15 @@ class Tarefa(models.Model):
                     "fim_previsto": "O período deve abranger todas as alocações existentes. Corrija os dias antes de reduzir o prazo."
                 })
 
-    def save(self, *args, ator=None, **kwargs):
+    def save(self, *args, ator=None, turno_operacao=None, **kwargs):
         update_fields = kwargs.get("update_fields")
         if update_fields is not None and not update_fields:
             return
         using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
         kwargs["using"] = using
         with transaction.atomic(using=using):
+            if ator is not None:
+                ator = travar_autorizacao(ator)
             anterior = None
             if self.pk is not None:
                 anterior = type(self).objects.using(using).select_for_update().filter(pk=self.pk).first()
@@ -112,17 +115,54 @@ class Tarefa(models.Model):
                 exigir_escopo_objeto(ator, self)
                 if anterior is not None:
                     exigir_escopo_objeto(ator, anterior)
+            if settings.OP_APP_TURNOS_ENABLED and turno_operacao is not None and ator is None:
+                raise PermissionDenied('Informe o autor da operação por turno.')
+            if settings.OP_APP_TURNOS_ENABLED and ator is not None:
+                irrestrito = administrador(ator) or (
+                    coordenador_no_setor(ator, self.setor_id)
+                    and (anterior is None or coordenador_no_setor(ator, anterior.setor_id)))
+                if not irrestrito:
+                    if turno_operacao is None:
+                        raise PermissionDenied('Informe o turno autorizado desta operação.')
+                    codigo = getattr(turno_operacao, 'pk', turno_operacao)
+                    exigir_setor_turno(ator, self.setor_id, codigo)
+                    if anterior is not None and not (TurnoTarefa.objects.filter(tarefa=self, turno_id=codigo, ativo=True).exists()
+                            or self.alocacoes.filter(turno_id=codigo).exists()):
+                        raise PermissionDenied('Tarefa não disponível para este turno.')
+                    if anterior is None and self.observacoes:
+                        raise PermissionDenied('Use a observação do turno; observações gerais cabem ao Coordenador.')
+                    if anterior is not None:
+                        campos_gerais = ('titulo', 'descricao', 'setor_id', 'inicio_previsto', 'fim_previsto', 'observacoes')
+                        if any(getattr(self, campo) != getattr(anterior, campo) for campo in campos_gerais):
+                            raise PermissionDenied('Dados gerais da tarefa são responsabilidade do Coordenador.')
+                        if self.status != anterior.status:
+                            if (anterior.status, self.status) not in {
+                                (self.Status.PENDENTE, self.Status.EM_ANDAMENTO),
+                                (self.Status.EM_ANDAMENTO, self.Status.CONCLUIDA)}:
+                                raise PermissionDenied('Cancelamento e reabertura exigem o Coordenador.')
+                            if self.status == self.Status.CONCLUIDA:
+                                from apps.organizacao.turnos import data_operacional_hoje
+                                if self.alocacoes.filter(data__gte=data_operacional_hoje()).exclude(turno_id=codigo).exists():
+                                    raise ValidationError('Há planejamento pendente em outro turno ou sem classificação. Procure o Coordenador para encerrar.')
+                if turno_operacao is not None:
+                    codigo = getattr(turno_operacao, 'pk', turno_operacao)
+                    from apps.organizacao.models import Turno
+                    if not Turno.objects.filter(pk=codigo, ativo=True).exists():
+                        raise ValidationError('Selecione um turno ativo.')
             self.full_clean()
             super().save(*args, **kwargs)
+            if settings.OP_APP_TURNOS_ENABLED and anterior is None and turno_operacao is not None:
+                TurnoTarefa.objects.bulk_create([TurnoTarefa(tarefa=self, turno_id=getattr(turno_operacao, 'pk', turno_operacao), registrado_por=ator)])
             if anterior is None or any(
                 getattr(self, campo) != getattr(anterior, campo) for campo in self.CAMPOS_HISTORICO
             ):
                 HistoricoTarefa.objects.using(using).create(
-                    tarefa=self, registrado_por=ator, **{campo: getattr(self, campo) for campo in self.CAMPOS_HISTORICO}
+                    tarefa=self, registrado_por=ator, turno_operacao_id=getattr(turno_operacao, 'pk', turno_operacao) if settings.OP_APP_TURNOS_ENABLED else None, **{campo: getattr(self, campo) for campo in self.CAMPOS_HISTORICO}
                 )
 
 
 class HistoricoTarefa(models.Model):
+    turno_operacao = models.ForeignKey('organizacao.Turno', null=True, blank=True, on_delete=models.PROTECT, related_name='+')
     """Fotografia do planejamento inicial e de cada alteração operacional."""
 
     tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name="historico")
@@ -202,6 +242,8 @@ class Alocacao(models.Model):
         # A aplicação usa um único banco PostgreSQL.
         exigir_permissao(ator, "add" if self._state.adding else "change")
         with transaction.atomic():
+            ator = travar_autorizacao(ator)
+            exigir_permissao(ator, 'add' if self._state.adding else 'change')
             anterior = type(self).objects.filter(pk=self.pk).first() if self.pk else None
             if anterior and update_fields is not None:
                 for campo in ("trabalhador", "tarefa", "data", "funcao_desempenhada", "observacao", "turno"):
@@ -256,6 +298,8 @@ class Alocacao(models.Model):
     def delete(self, *args, ator=None, **kwargs):
         exigir_permissao(ator, "delete")
         with transaction.atomic():
+            ator = travar_autorizacao(ator)
+            exigir_permissao(ator, 'delete')
             snapshot = type(self).objects.get(pk=self.pk)
             list(Tarefa.objects.select_for_update().filter(pk=snapshot.tarefa_id))
             from apps.organizacao.models import Trabalhador
@@ -287,3 +331,74 @@ class HistoricoTurnoAlocacao(models.Model):
 
     class Meta:
         ordering = ('registrado_em', 'pk')
+
+
+class TurnoTarefa(models.Model):
+    tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name='participacoes_turno')
+    turno = models.ForeignKey('organizacao.Turno', on_delete=models.PROTECT, related_name='+')
+    ativo = models.BooleanField(default=True)
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    registrado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=('tarefa', 'turno'), name='tarefa_turno_unico')]
+
+    def save(self, *args, ator=None, **kwargs):
+        if not settings.OP_APP_TURNOS_ENABLED:
+            raise PermissionDenied('A operação com turnos não está habilitada.')
+        with transaction.atomic():
+            ator = travar_autorizacao(ator)
+            tarefa = Tarefa.objects.select_for_update().get(pk=self.tarefa_id)
+            exigir_operacao(ator, 'planejamento.change_tarefa')
+            if not administrador(ator) and not coordenador_no_setor(ator, tarefa.setor_id):
+                raise PermissionDenied('Somente o Coordenador pode alterar a participação dos turnos.')
+            anterior = type(self).objects.filter(pk=self.pk).first() if self.pk else None
+            if anterior and (anterior.tarefa_id, anterior.turno_id) != (self.tarefa_id, self.turno_id):
+                raise ValidationError('Inative a participação anterior; não altere sua identidade.')
+            self.registrado_por_id = anterior.registrado_por_id if anterior else ator.pk
+            if self.ativo and not self.turno.ativo:
+                raise ValidationError('Selecione um turno ativo.')
+            self.full_clean()
+            resultado = super().save(*args, **kwargs)
+            if anterior is None or anterior.ativo != self.ativo:
+                from apps.organizacao.models import HistoricoAcessoTurno
+                HistoricoAcessoTurno.objects.create(setor_id=tarefa.setor_id, registrado_por=ator,
+                    tipo='participacao_tarefa', alteracao={'tarefa': tarefa.pk, 'turno': self.turno_id,
+                    'anterior': anterior.ativo if anterior else None, 'ativo': self.ativo})
+            return resultado
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError('Inative a participação; preserve os registros.')
+
+
+class ObservacaoTarefaTurno(models.Model):
+    tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name='observacoes_por_turno')
+    turno = models.ForeignKey('organizacao.Turno', on_delete=models.PROTECT, related_name='+')
+    texto = models.TextField('observação do turno')
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    registrado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('registrado_em', 'pk')
+
+    def save(self, *args, ator=None, **kwargs):
+        if not settings.OP_APP_TURNOS_ENABLED or not self._state.adding:
+            raise PermissionDenied('As observações são registros por turno, sem edição do histórico.')
+        with transaction.atomic():
+            ator = travar_autorizacao(ator)
+            tarefa = Tarefa.objects.select_for_update().get(pk=self.tarefa_id)
+            exigir_operacao(ator, 'planejamento.change_tarefa')
+            exigir_escopo_objeto(ator, tarefa)
+            exigir_setor_turno(ator, tarefa.setor_id, self.turno_id)
+            if not administrador(ator) and not coordenador_no_setor(ator, tarefa.setor_id):
+                if not (TurnoTarefa.objects.filter(tarefa=tarefa, turno_id=self.turno_id, ativo=True).exists()
+                        or tarefa.alocacoes.filter(turno_id=self.turno_id).exists()):
+                    raise PermissionDenied('Tarefa não disponível para este turno.')
+            if not self.texto.strip():
+                raise ValidationError('Escreva a observação do turno.')
+            self.registrado_por = ator
+            self.full_clean()
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied('As observações do turno devem ser preservadas.')
