@@ -195,6 +195,8 @@ class TrabalhadorAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, CadastroAdm
 
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'funcao_principal':
+            kwargs['help_text'] = 'Referência organizacional do cadastro Funções (atividades). Não comprova competência e não limita as atividades da tarefa.'
         if settings.OP_APP_TURNOS_ENABLED and db_field.name == 'setor_principal' and not administrador(request.user):
             kwargs['queryset'] = Setor.objects.filter(responsavel_operacional__usuario=request.user)
             return admin.ModelAdmin.formfield_for_foreignkey(self, db_field, request, **kwargs)

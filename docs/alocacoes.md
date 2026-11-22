@@ -2,9 +2,9 @@
 
 ## O que representa uma alocação
 
-Uma alocação relaciona **trabalhador + tarefa + data**, com função desempenhada, observação e autoria. É participação planejada naquele dia: não equivale a dedicação exclusiva, jornada completa, horas trabalhadas ou capacidade disponível.
+Uma alocação relaciona **trabalhador + tarefa + data**, com atividades necessárias à tarefa, observação e autoria. É participação planejada naquele dia: não equivale a dedicação exclusiva, jornada completa, horas trabalhadas ou capacidade disponível.
 
-O exemplo `Pessoa Exemplo | Montagem/Soldagem | Eixo THC 95 | segunda a quinta` gera quatro registros independentes. Outra tarefa na terça gera um quinto registro, sem substituir a primeira. Função desempenhada é um vínculo a `Funcao` e pode ser diferente da função principal do trabalhador; use o cadastro profissional adequado à atividade.
+O exemplo `Pessoa Exemplo | Montagem/Soldagem | Eixo THC 95 | segunda a quinta` gera quatro registros independentes. Outra tarefa na terça gera um quinto registro, sem substituir a primeira. O cadastro `Funcao` representa atividades necessárias à tarefa, não competências profissionais. O campo legado `funcao_desempenhada` preserva a atividade de referência; o fluxo operacional permite selecionar várias, guardando as demais como relações adicionais. O conjunto vale para a equipe e os dias revisados, sem atribuir competências a cada pessoa. Consulte [o fluxo operacional](planejamento-operacional.md).
 
 ## Integridade e regras
 

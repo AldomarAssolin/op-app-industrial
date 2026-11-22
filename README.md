@@ -238,7 +238,7 @@ O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, 
 - A combinação `(trabalhador, tarefa, data)` deverá ser única para evitar duplicações acidentais.
 - A **semana** será inicialmente um filtro de consulta, sem tabela própria.
 - Equipes serão dinâmicas, formadas pelas alocações, sem cadastro de equipes fixas no MVP.
-- Função profissional e perfil de acesso serão conceitos distintos.
+- O cadastro Funções representa atividades necessárias à tarefa; perfis de acesso definem permissões. Competências profissionais individuais ficam fora deste escopo.
 
 As regras de tarefas e alocações diárias estão implementadas; o quadro semanal consulta os registros existentes sem tabela própria de semana. Os cadastros organizacionais já estão implementados; consulte [docs/organizacao.md](docs/organizacao.md) para normalização, homônimos, inativação, exclusão protegida e uso no Admin.
 

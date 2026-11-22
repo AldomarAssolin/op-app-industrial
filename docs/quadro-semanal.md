@@ -20,7 +20,7 @@ O vínculo mínimo foi antecipado na issue #5. A issue #6 acrescenta os grupos e
 
 Selecionar qualquer data determina a semana de segunda a domingo; sem parâmetro usa-se a data atual do fuso configurado no Django. O cabeçalho exibe o intervalo completo e os links anterior/próxima avançam sete dias, preservando setor e opção de fim de semana.
 
-Cada linha reúne **ID do trabalhador + ID da função desempenhada + ID da tarefa**. Duas tarefas no mesmo dia aparecem em linhas distintas; funções diferentes também. Nomes homônimos não são mesclados e o ID do trabalhador aparece na tela.
+Cada linha reúne **trabalhador + conjunto de atividades da tarefa + tarefa + turno**. O cadastro Funções fornece as atividades; não representa competências individuais. Duas tarefas no mesmo dia aparecem em linhas distintas; funções diferentes também. Nomes homônimos não são mesclados e o ID do trabalhador aparece na tela.
 
 As colunas padrão são segunda a sexta. Marcar **Mostrar sábado e domingo** exibe sete dias. Se houver alocações autorizadas no sábado/domingo, essas colunas aparecem automaticamente, evitando ocultação de registros. Dados de setores não autorizados não influenciam essa expansão.
 
