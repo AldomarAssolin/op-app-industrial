@@ -1,0 +1,7 @@
+{% extends "planejamento/operacional/base.html" %}
+{% block content %}<h1>Remover esta alocação?</h1>
+<p>{{ alocacao.trabalhador.nome }} · {{ alocacao.tarefa.titulo }} · {{ alocacao.data|date:"d/m/Y" }}{% if turnos_habilitados %} · {{ alocacao.turno|default:"Turno não informado" }}{% endif %}</p>
+<p>Somente este registro será removido. Os demais dias e o histórico de turno serão preservados.</p>
+{% if erro %}<p role="alert">{{ erro }}</p>{% endif %}
+<form method="post">{% csrf_token %}<input type="hidden" name="retorno" value="{{ retorno }}"><input type="hidden" name="versao" value="{{ versao }}"><button type="submit">Confirmar remoção</button></form>
+<p><a href="{{ voltar }}">Cancelar e voltar ao quadro</a></p>{% endblock %}

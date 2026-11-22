@@ -1,0 +1,23 @@
+{% extends "planejamento/operacional/base.html" %}{% load static %}
+{% block title %}Planejar trabalhadores e dias | OP-APP{% endblock %}
+{% block extrahead %}<link rel="stylesheet" href="{% static 'planejamento/css/fluxo.css' %}">{{ form.media }}{% endblock %}
+{% block content %}
+<h1>Planejar trabalhadores e dias</h1>
+<p>Escolha tarefa, pessoas e dias. Confira o conjunto antes de confirmar. Alocações não contabilizam horas nem comprovam disponibilidade.</p>
+{% if revisao %}
+<section class="operation-panel" aria-labelledby="revisao-titulo">
+<h2 id="revisao-titulo">Revise antes de confirmar</h2>
+<p><strong>{{ revisao.linhas|length }} alocações</strong> · {{ revisao.tarefa.titulo }} · {{ revisao.tarefa.setor.nome }} · {{ revisao.funcao.nome }}{% if turnos_habilitados %} · {{ revisao.turno }}{% endif %}</p>
+<div class="review-scroll"><table class="review-table"><thead><tr><th>Trabalhador</th><th>Data operacional de início do turno</th><th>Turno</th></tr></thead><tbody>
+{% for linha in revisao.linhas %}<tr><td>{{ linha.trabalhador.nome }}</td><td>{{ linha.data|date:"d/m/Y" }}</td><td>{{ linha.turno|default:"Turno não informado" }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% if form.cleaned_data.observacao %}<p>Observação: {{ form.cleaned_data.observacao }}</p>{% endif %}
+<p>Se qualquer pessoa ou dia estiver inválido, nenhum registro do conjunto será criado. Mudanças de acesso ou planejamento exigem nova conferência.</p>
+<form method="post" class="actions">{% csrf_token %}<input type="hidden" name="confirmacao" value="{{ revisao.token }}"><input type="hidden" name="retorno" value="{{ retorno }}"><button class="confirm-button" type="submit">Confirmar planejamento</button></form>
+</section>
+<details><summary>Alterar seleção e revisar novamente</summary>
+{% endif %}
+<section class="operation-panel"><form method="post" class="operation-form">{% csrf_token %}<input type="hidden" name="retorno" value="{{ retorno }}">{{ form.as_p }}<button type="submit">Revisar planejamento</button></form></section>
+{% if revisao %}</details>{% endif %}
+<p><a href="{{ voltar }}">Voltar ao quadro semanal</a></p>
+{% endblock %}

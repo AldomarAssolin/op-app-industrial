@@ -24,10 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const opcoes = pagina.querySelector('select[data-turno-referencia]');
             if (!opcoes) throw new Error('Seletor indisponível');
             if (atual !== versao) return;
-            const selecionado = trabalhador.value;
+            const selecionados = Array.from(trabalhador.selectedOptions, opcao => opcao.value);
             trabalhador.replaceChildren(...Array.from(opcoes.options, opcao => opcao.cloneNode(true)));
-            trabalhador.value = selecionado;
-            if (trabalhador.selectedIndex < 0) trabalhador.value = '';
+            if (trabalhador.multiple) {
+                for (const opcao of trabalhador.options) opcao.selected = selecionados.includes(opcao.value);
+            } else {
+                trabalhador.value = selecionados[0] || '';
+                if (trabalhador.selectedIndex < 0) trabalhador.value = '';
+            }
             trabalhador.dispatchEvent(new Event('change', {bubbles: true}));
             aviso.textContent = ' Turnos atualizados para a data informada.';
         } catch (erro) {
