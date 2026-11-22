@@ -15,21 +15,30 @@ from .contexto import contexto_quadro, url_quadro
 
 
 class CorrecaoForm(forms.ModelForm):
+    tarefa = forms.ModelChoiceField(label='Tarefa (mantida nesta correção)', queryset=Tarefa.objects.none(), disabled=True)
     versao = forms.CharField(widget=forms.HiddenInput)
 
     class Meta:
         model = Alocacao
-        fields = ('trabalhador','data','funcao_desempenhada','observacao')
+        fields = ('tarefa','trabalhador','data','funcao_desempenhada','observacao')
         widgets = {'data':forms.DateInput(attrs={'type':'date'}, format='%Y-%m-%d')}
         field_classes = {'trabalhador':TrabalhadorTurnoChoiceField}
 
+    class Media:
+        js = ('planejamento/js/turno_trabalhador.js',)
+
     def __init__(self, *args, ator, **kwargs):
         super().__init__(*args, **kwargs)
+        # Campo desabilitado recebe erros do modelo sem permitir troca por POST.
+        self.fields['tarefa'].queryset = Tarefa.objects.filter(pk=self.instance.tarefa_id)
         try:
             dia = forms.DateField().clean(self.data.get('data') or self.initial.get('data'))
         except forms.ValidationError:
             dia = self.instance.data
         self.fields['trabalhador'].queryset = filtrar_escopo(ator, Trabalhador.objects.filter(ativo=True), data_referencia=dia)
+        from django.conf import settings
+        if settings.OP_APP_TURNOS_ENABLED:
+            self.fields['trabalhador'].widget.attrs['data-turno-referencia'] = 'data'
 
 
 def _versao(obj, ator):
@@ -67,7 +76,7 @@ def corrigir_alocacao(request, pk):
     exigir_operacao(request.user, 'planejamento.change_alocacao')
     obj = get_object_or_404(filtrar_escopo(request.user, Alocacao.objects.all()), pk=pk)
     contexto = contexto_quadro(request.user, request.POST.get('retorno', '') if request.method=='POST' else request.GET.get('retorno',''), semana=obj.data)
-    form = CorrecaoForm(request.POST or None, instance=obj, ator=request.user, initial={'versao':_versao(obj,request.user)})
+    form = CorrecaoForm(request.POST or None, instance=obj, ator=request.user, initial={'versao':_versao(obj,request.user), 'data':request.GET.get('data') or obj.data})
     if request.method=='POST' and form.is_valid():
         try:
             _gravar(request.user, form.save(commit=False), form.cleaned_data['versao'])

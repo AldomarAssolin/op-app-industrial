@@ -73,6 +73,7 @@ def montar_quadro_semanal(*, ator, semana, setor_id=None, fim_semana=False,
             'status':status or '', 'dia':dia if dia is not None else ''}, ator=ator)
         if not validacao.is_valid():
             raise PermissionDenied('Filtro inválido ou fora do acesso autorizado.')
+        dia = validacao.cleaned_data['dia']
     if turno:
         consulta = consulta.filter(turno__isnull=True) if turno == 'nao_informado' else consulta.filter(turno_id=turno)
     if trabalhador_id:
@@ -85,7 +86,7 @@ def montar_quadro_semanal(*, ator, semana, setor_id=None, fim_semana=False,
         consulta = consulta.filter(data=inicio + timedelta(days=dia))
     alocacoes = list(consulta.order_by('trabalhador__nome', 'trabalhador_id', 'tarefa__titulo',
                     'tarefa_id', 'funcao_desempenhada__nome', 'funcao_desempenhada_id', 'data'))
-    mostrar_fim_semana = fim_semana or (dia is not None and dia >= 5) or any(a.data.weekday() >= 5 for a in alocacoes)
+    mostrar_fim_semana = (dia >= 5) if dia is not None else (fim_semana or any(a.data.weekday() >= 5 for a in alocacoes))
     dias = [inicio + timedelta(days=dia)] if dia is not None else [inicio + timedelta(days=i) for i in range(7 if mostrar_fim_semana else 5)]
     grupos = {}
     for alocacao in alocacoes:

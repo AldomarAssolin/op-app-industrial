@@ -179,6 +179,7 @@ class FluxoOperacionalTests(FixtureFluxo, TestCase):
         pagina=self.client.get(reverse('planejamento:quadro_semanal'),params)
         self.assertEqual(pagina.status_code,200)
         self.assertEqual(len(pagina.context['colunas']),1)
+        self.assertFalse(pagina.context['mostrar_fim_semana'])
         self.assertEqual(pagina.context['colunas'][0]['data'],dia)
         self.assertEqual(len(pagina.context['linhas']),1)
         consulta=parse_qs(urlsplit(pagina.context['url_proxima']).query)
@@ -240,6 +241,25 @@ class FluxoOperacionalTests(FixtureFluxo, TestCase):
         self.assertContains(r,'A alocação mudou')
         obj.refresh_from_db();self.assertEqual(obj.observacao,'Mais recente')
         self.assertEqual(self.client.get(reverse('planejamento:corrigir_alocacao',args=[self.al2.pk])).status_code,404)
+
+    def test_correcao_em_tarefa_encerrada_reapresenta_erro_sem_500(self):
+        for status in ('CANCELADA', 'CONCLUIDA'):
+            with self.subTest(status=status):
+                tarefa=self.task('Tarefa para encerrar '+status,self.a,self.c1,self.t1)
+                alocacao=self.alloc(self.w1,tarefa,self.c1,self.t1)
+                url=reverse('planejamento:corrigir_alocacao',args=[alocacao.pk])
+                versao=self.client.get(url).context['form']['versao'].value()
+                if status=='CONCLUIDA':
+                    tarefa.status='EM_ANDAMENTO';tarefa.save(ator=self.c1)
+                tarefa.status=status;tarefa.save(ator=self.c1)
+                resposta=self.client.post(url,{'versao':versao,'trabalhador':self.w1.pk,
+                    'tarefa':self.fb.pk,'data':str(self.hoje),
+                    'funcao_desempenhada':self.funcao.pk,'observacao':'Não salvar'})
+                self.assertContains(resposta,'Reabra a tarefa')
+                alocacao.refresh_from_db()
+                self.assertEqual(alocacao.tarefa_id,tarefa.pk)
+                self.assertNotEqual(alocacao.observacao,'Não salvar')
+                self.assertNotContains(resposta,'Tarefa B oculta')
 
     def test_remocao_exige_post_preserva_outros_dias_e_historico(self):
         url=reverse('planejamento:remover_alocacao',args=[self.al1.pk])
