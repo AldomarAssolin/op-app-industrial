@@ -402,3 +402,12 @@ class ObservacaoTarefaTurno(models.Model):
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied('As observações do turno devem ser preservadas.')
+
+
+class ConfirmacaoPlanejamento(models.Model):
+    """Recibo durável de confirmação; reenvio do mesmo lote não cria novas alocações."""
+    id = models.UUIDField(primary_key=True, editable=False)
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    resumo = models.CharField(max_length=64)
+    quantidade = models.PositiveIntegerField()
+    registrado_em = models.DateTimeField(auto_now_add=True)

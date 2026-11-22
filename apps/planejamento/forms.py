@@ -76,18 +76,45 @@ class AlocacaoMultidiaForm(forms.Form):
 
 
 class QuadroSemanalForm(forms.Form):
-    semana = forms.DateField(label="Data da semana", widget=forms.DateInput(attrs={"type": "date"}))
-    setor = forms.ModelChoiceField(label="Setor", queryset=None, required=False,
-                                  empty_label="Todos os setores permitidos",
-                                  error_messages={"invalid_choice": "Selecione um setor permitido."})
-    fim_semana = forms.BooleanField(label="Mostrar sábado e domingo", required=False)
+    semana = forms.DateField(label='Data da semana', widget=forms.DateInput(attrs={'type':'date'}))
+    setor = forms.ModelChoiceField(label='Setor', queryset=None, required=False,
+                                  empty_label='Todos os setores permitidos',
+                                  error_messages={'invalid_choice':'Selecione um setor permitido.'})
+    turno = forms.ChoiceField(label='Turno', required=False)
+    trabalhador = forms.ModelChoiceField(label='Trabalhador', queryset=Trabalhador.objects.none(), required=False,
+                                        empty_label='Todos os trabalhadores permitidos')
+    tarefa = forms.ModelChoiceField(label='Tarefa', queryset=Tarefa.objects.none(), required=False,
+                                   empty_label='Todas as tarefas permitidas')
+    dia = forms.TypedChoiceField(label='Dia da semana', required=False, coerce=int, empty_value=None,
+        choices=[('', 'Semana completa'), *enumerate(('Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'))])
+    status = forms.ChoiceField(label='Status atual da tarefa', required=False,
+                              choices=[('', 'Todos os estados'), *Tarefa.Status.choices])
+    fim_semana = forms.BooleanField(label='Mostrar sábado e domingo', required=False)
 
     def __init__(self, *args, ator, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["setor"].queryset = setores_permitidos(ator)
+        from django.db.models import Q
+        from .models import Alocacao
+        from apps.organizacao.autorizacao import turnos_permitidos
+        self.fields['setor'].queryset = setores_permitidos(ator)
+        visiveis = filtrar_escopo(ator, Alocacao.objects.all())
+        atuais = filtrar_escopo(ator, Trabalhador.objects.all())
+        self.fields['trabalhador'].queryset = Trabalhador.objects.filter(
+            Q(pk__in=atuais.values('pk')) | Q(pk__in=visiveis.values('trabalhador_id')))
+        self.fields['tarefa'].queryset = filtrar_escopo(ator, Tarefa.objects.all())
+        if settings.OP_APP_TURNOS_ENABLED:
+            codigos = set()
+            for setor in self.fields['setor'].queryset:
+                codigos |= turnos_permitidos(ator, setor.pk)
+            opcoes = [(c,c) for c in sorted(codigos)]
+            if visiveis.filter(turno__isnull=True).exists():
+                opcoes.append(('nao_informado', 'Turno não informado'))
+            self.fields['turno'].choices = [('', 'Todos os turnos permitidos'), *opcoes]
+        else:
+            self.fields.pop('turno')
 
     def clean_semana(self):
-        dia = self.cleaned_data["semana"]
+        dia = self.cleaned_data['semana']
         semana_de(dia)
         return dia
 
@@ -99,3 +126,30 @@ class TarefaTurnosForm(forms.ModelForm):
     class Meta:
         model = Tarefa
         fields = '__all__'
+
+
+class TrabalhadoresTurnoChoiceField(forms.ModelMultipleChoiceField):
+    label_from_instance = TrabalhadorTurnoChoiceField.label_from_instance
+
+
+class PlanejarForm(AlocacaoMultidiaForm):
+    trabalhadores = TrabalhadoresTurnoChoiceField(
+        label='Trabalhadores', queryset=Trabalhador.objects.none(),
+        widget=forms.SelectMultiple(attrs={'size': 8}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        anterior = self.fields.pop('trabalhador')
+        campo = self.fields['trabalhadores']
+        campo.queryset = anterior.queryset
+        campo.help_text = 'Selecione uma ou mais pessoas. ' + str(anterior.help_text)
+        if settings.OP_APP_TURNOS_ENABLED:
+            campo.widget.attrs['data-turno-referencia'] = 'inicio'
+        self.order_fields(['tarefa', 'inicio', 'fim', 'dias_semana', 'turno', 'trabalhadores', 'funcao_desempenhada', 'observacao'])
+
+    def clean(self):
+        dados = super().clean()
+        if dados.get('trabalhadores') is not None and dados.get('datas'):
+            if len(dados['trabalhadores']) * len(dados['datas']) > 1000:
+                raise forms.ValidationError('Selecione no máximo 1.000 alocações por confirmação.')
+        return dados

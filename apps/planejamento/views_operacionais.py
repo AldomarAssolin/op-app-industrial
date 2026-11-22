@@ -27,7 +27,7 @@ def navegacao_operacional(usuario):
         "turnos_habilitados": settings.OP_APP_TURNOS_ENABLED,
         "setores_com_turnos": [{"setor": s, "turnos": sorted(turnos_permitidos(usuario, s.pk))} for s in setores] if settings.OP_APP_TURNOS_ENABLED else [],
         "pode_ver_semana": bool(setores) and permite(usuario, "planejamento.view_alocacao"),
-        "pode_planejar": apoio and permite(usuario, "planejamento.add_alocacao"),
+        "pode_planejar": bool(setores) and permite(usuario, "planejamento.add_alocacao"),
         "pode_ver_tarefas": apoio and permite(usuario, "planejamento.view_tarefa"),
         "pode_ver_equipe": apoio and permite(usuario, "organizacao.view_trabalhador"),
         "pode_cadastrar_trabalhador": apoio and permite(usuario, "organizacao.add_trabalhador") and (not settings.OP_APP_TURNOS_ENABLED or pode_manter_equipe(usuario)),

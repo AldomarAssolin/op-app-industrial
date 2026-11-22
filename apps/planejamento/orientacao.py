@@ -35,6 +35,8 @@ def proximo_passo(usuario, *, setor_id=None, semana=None):
             pode = pode and pode_manter_equipe(usuario)
         if configuracao:
             pode = usuario.is_staff and administrador(usuario) and permite(usuario, permissao)
+        if destino == 'planejamento:planejar':
+            pode = tem_setor and permite(usuario, 'planejamento.add_alocacao')
         if destino == 'planejamento:quadro_semanal':
             pode = tem_setor and permite(usuario, 'planejamento.view_alocacao')
         return {'estado': estado, 'titulo': titulo, 'mensagem': mensagem,
@@ -86,7 +88,7 @@ def proximo_passo(usuario, *, setor_id=None, semana=None):
     if not alocacoes.exists():
         return resultado('alocacoes', 'Faça o primeiro planejamento',
             'Escolha a tarefa, o trabalhador, a função desempenhada e os dias dentro do período previsto. Depois confira o quadro semanal.',
-            'planejamento.add_alocacao', 'admin:planejamento_alocacao_varios_dias', 'Planejar dias no Admin',
+            'planejamento.add_alocacao', 'planejamento:planejar', 'Planejar trabalhadores e dias',
             'Líder ou Coordenador')
     if settings.OP_APP_TURNOS_ENABLED:
         from apps.organizacao.turnos import data_operacional_hoje
@@ -98,7 +100,7 @@ def proximo_passo(usuario, *, setor_id=None, semana=None):
     if not alocacoes.filter(data__range=(inicio, fim)).exists():
         return resultado('semana_vazia', 'Ainda não há alocações nesta semana',
             'Há planejamento em outros períodos dos setores desta consulta. Consulte outra semana ou planeje os dias desejados.',
-            'planejamento.add_alocacao', 'admin:planejamento_alocacao_varios_dias', 'Planejar dias no Admin',
+            'planejamento.add_alocacao', 'planejamento:planejar', 'Planejar trabalhadores e dias',
             'Líder ou Coordenador')
     return resultado('pronto', 'Continue pela semana planejada',
         'O planejamento já tem alocações nesta semana. Consulte o quadro e use a navegação para continuar o trabalho.',

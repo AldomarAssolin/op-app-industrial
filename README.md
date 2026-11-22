@@ -4,6 +4,9 @@ Sistema independente para **planejamento e distribuição diária de trabalhador
 
 > **Estado do projeto — 22/11/2026:** MVP v1.0.0 publicado; piloto (#16/#22) concluído. As evoluções de página pública, navegação, primeiro uso e turnos foram integradas; Manex confirmou implantação e aceite de produção dos turnos em 21/11. Confira [estado das entregas e pendências](docs/estado-entregas-2026-11-22.md), [regras de turnos](docs/autorizacao-turnos.md) e [operação e recuperação](docs/operacao-piloto.md). A tag v1.0.0 preserva o marco inicial e não inclui todas as evoluções de main.
 
+Fluxo operacional de planejamento e filtros do quadro: [guia #26/#27](docs/planejamento-operacional.md).
+Notas preparadas para a próxima candidata: [v1.1.0-rc.1](docs/notas-v1.1.0-rc.1.md); a avaliação aprofundada permanece na #28.
+
 ## 1. Objetivo e contexto
 
 O primeiro módulo do OP-APP apoiará coordenadores e líderes na distribuição de trabalhadores entre tarefas de produção. Uma tarefa pode durar dias ou semanas, receber vários trabalhadores e compartilhar um mesmo trabalhador com outras tarefas no mesmo dia.

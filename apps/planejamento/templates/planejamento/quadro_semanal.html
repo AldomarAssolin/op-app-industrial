@@ -56,10 +56,12 @@
 {% block content %}
     <h1>Quadro semanal</h1>
     <p class="intro">Trabalhadores, funções e tarefas organizados por dia.</p>
-    {% if pode_planejar %}<a class="admin-link" href="{% url 'admin:planejamento_alocacao_changelist' %}">Abrir alocações no Admin</a>{% endif %}
+    {% if pode_planejar %}<a class="admin-link" href="{{ url_planejar }}">Planejar trabalhadores e dias</a>{% endif %}
     <section class="filters" aria-label="Filtros do quadro">
-      <form method="get">{{ form.as_p }}<button type="submit">Consultar semana</button></form>
+      <form method="get">{{ form.as_p }}<button type="submit">Consultar semana</button>{% if url_limpar %}<a href="{{ url_limpar }}">Limpar filtros e manter semana</a>{% endif %}</form>
     </section>
+    {% if filtros_ativos %}<p>Filtros ativos: {% for filtro in filtros_ativos %}<strong>{{ filtro.nome }}:</strong> {{ filtro.texto }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+    <p class="note">Status exibido e filtro usam o <strong>estado atual da tarefa</strong>, inclusive em semanas passadas; não representam o estado histórico daquela semana.</p>
     {% if inicio %}
       <nav class="navigation" aria-label="Navegação entre semanas">
         {% if url_anterior %}<a href="{{ url_anterior }}">← Semana anterior</a>{% endif %}
@@ -67,7 +69,7 @@
         {% if url_proxima %}<a href="{{ url_proxima }}">Próxima semana →</a>{% endif %}
         <button type="button" onclick="window.print()">Imprimir</button>
       </nav>
-      {% if mostrar_fim_semana %}<p class="note weekend">Sábado e domingo incluídos por seleção ou por haver alocações nesses dias.</p>{% endif %}
+      {% if mostrar_fim_semana %}<p class="note weekend">Dias de fim de semana incluídos conforme a seleção ou os registros autorizados.</p>{% endif %}
       {% if linhas %}
         <div class="table-wrap" role="region" aria-label="Planejamento por trabalhador e dia" tabindex="0">
           <table>
@@ -76,18 +78,20 @@
               {% for coluna in colunas %}<th scope="col">{{ coluna.nome }}<small>{{ coluna.data|date:"d/m" }}</small></th>{% endfor %}
             </tr></thead>
             <tbody>{% for linha in linhas %}<tr>
-              <th scope="row">{{ linha.trabalhador.nome }}<small>ID {{ linha.trabalhador.pk }}</small></th>
+              <th scope="row">{{ linha.trabalhador.nome }}</th>
               <td>{{ linha.funcao.nome }}</td>
               <td>{{ linha.tarefa.titulo }}{% if turnos_habilitados %}<small>Turno: {{ linha.turno|default:"Turno não informado" }} · Data do início do turno</small>{% endif %}<small>{{ linha.tarefa.setor.nome }} · {{ linha.tarefa.get_status_display }}</small>
                 <small>Previsto: {{ linha.tarefa.inicio_previsto|date:"d/m/Y" }} a {{ linha.tarefa.fim_previsto|date:"d/m/Y" }}</small></td>
               {% for celula in linha.celulas %}<td class="day{% if celula.alocacao %} allocated{% endif %}">
                 {% if celula.alocacao %}<span class="mark">Alocado</span>{% if celula.alocacao.observacao %}<small>{{ celula.alocacao.observacao }}</small>{% endif %}
+                {% if pode_corrigir %}<small class="admin-link"><a href="{{ celula.url_corrigir }}">Corrigir</a></small>{% endif %}
+                {% if pode_remover %}<small class="admin-link"><a href="{{ celula.url_remover }}">Remover</a></small>{% endif %}
                 {% else %}<span aria-label="Sem alocação">—</span>{% endif %}
               </td>{% endfor %}
             </tr>{% endfor %}</tbody>
           </table>
         </div>
-      {% else %}<div class="empty"><strong>Nenhuma alocação nesta semana.</strong><p>{% if semana_tem_outro_setor %}O setor selecionado não tem alocações nesta semana. Experimente outro setor permitido ou limpe o filtro.{% else %}Não há registros para a semana e os setores permitidos selecionados. Consulte outra semana ou confira os próximos passos.{% endif %}</p></div>{% endif %}
+      {% else %}<div class="empty"><strong>Nenhuma alocação nesta semana.</strong><p>{% if sem_acesso %}Sua conta não possui setor autorizado. Procure o responsável.{% elif filtros_ativos and semana_tem_registros and not semana_tem_outro_setor %}Nenhuma alocação corresponde à combinação de filtros. Limpe os filtros para conferir a semana.{% elif semana_tem_outro_setor %}O setor selecionado não tem alocações nesta semana. Experimente outro setor permitido ou limpe o filtro.{% else %}Não há registros para a semana e os setores permitidos selecionados. Consulte outra semana ou confira os próximos passos.{% endif %}</p></div>{% endif %}
       {% if not linhas %}{% include "planejamento/operacional/orientacao.html" %}{% endif %}
       <p class="note">Cada linha reúne trabalhador, função desempenhada e tarefa. Dias vazios não indicam disponibilidade. Alocação não representa jornada exclusiva nem contabiliza horas.</p>
     {% endif %}

@@ -61,13 +61,33 @@ def semana_de(dia):
     return inicio, fim
 
 
-def montar_quadro_semanal(*, ator, semana, setor_id=None, fim_semana=False):
+def montar_quadro_semanal(*, ator, semana, setor_id=None, fim_semana=False,
+                         turno=None, trabalhador_id=None, tarefa_id=None, status=None, dia=None):
     inicio, fim = semana_de(semana)
-    alocacoes = list(consultar_alocacoes(ator=ator, inicio=inicio, fim=fim, setor_id=setor_id)
-                     .order_by("trabalhador__nome", "trabalhador_id", "tarefa__titulo", "tarefa_id",
-                               "funcao_desempenhada__nome", "funcao_desempenhada_id", "data"))
-    mostrar_fim_semana = fim_semana or any(a.data.weekday() >= 5 for a in alocacoes)
-    dias = [inicio + timedelta(days=i) for i in range(7 if mostrar_fim_semana else 5)]
+    consulta = consultar_alocacoes(ator=ator, inicio=inicio, fim=fim, setor_id=setor_id)
+    # A mesma validação de opções do formulário protege chamadas diretas do serviço.
+    if any((turno, trabalhador_id, tarefa_id, status, dia is not None)):
+        from .forms import QuadroSemanalForm
+        validacao = QuadroSemanalForm({'semana':semana.isoformat(), 'setor':setor_id or '',
+            'turno':turno or '', 'trabalhador':trabalhador_id or '', 'tarefa':tarefa_id or '',
+            'status':status or '', 'dia':dia if dia is not None else ''}, ator=ator)
+        if not validacao.is_valid():
+            raise PermissionDenied('Filtro inválido ou fora do acesso autorizado.')
+        dia = validacao.cleaned_data['dia']
+    if turno:
+        consulta = consulta.filter(turno__isnull=True) if turno == 'nao_informado' else consulta.filter(turno_id=turno)
+    if trabalhador_id:
+        consulta = consulta.filter(trabalhador_id=trabalhador_id)
+    if tarefa_id:
+        consulta = consulta.filter(tarefa_id=tarefa_id)
+    if status:
+        consulta = consulta.filter(tarefa__status=status)
+    if dia is not None:
+        consulta = consulta.filter(data=inicio + timedelta(days=dia))
+    alocacoes = list(consulta.order_by('trabalhador__nome', 'trabalhador_id', 'tarefa__titulo',
+                    'tarefa_id', 'funcao_desempenhada__nome', 'funcao_desempenhada_id', 'data'))
+    mostrar_fim_semana = (dia >= 5) if dia is not None else (fim_semana or any(a.data.weekday() >= 5 for a in alocacoes))
+    dias = [inicio + timedelta(days=dia)] if dia is not None else [inicio + timedelta(days=i) for i in range(7 if mostrar_fim_semana else 5)]
     grupos = {}
     for alocacao in alocacoes:
         chave = (alocacao.trabalhador_id, alocacao.funcao_desempenhada_id, alocacao.tarefa_id, alocacao.turno_id)
