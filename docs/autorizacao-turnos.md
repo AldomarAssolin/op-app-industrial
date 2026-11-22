@@ -2,8 +2,11 @@
 
 ## Estado e decisões
 
-Implementação sobre a #35; habilitação opcional, desabilitada por padrão. Sem implantação
-ou merge por esta entrega. Validar as duas PRs juntas em ambiente local com dados sintéticos.
+As #35/#36 foram integradas pelas PRs #37/#38 e aceitas localmente. Manex confirmou
+implantação, ativação de turnos e aprovação do roteiro final em produção em 21/11/2026.
+As evidências são do operador, sem inspeção independente do servidor pelo assistente.
+A opção continua desabilitada por padrão para novas instalações; isso não descreve o
+ambiente já ativado. Veja [aceites e pendências](estado-entregas-2026-11-22.md).
 
 | Perfil | Leitura e operação com turnos habilitados |
 | --- | --- |
@@ -50,7 +53,7 @@ histórico e alocações e orienta procurar o Coordenador sem revelar o planejam
 
 Usar uma cópia local descartável; não reutilizar credenciais de produção.
 
-1. Atualizar para a branch da PR #36 (ela inclui a base da #35), ativar o virtualenv e
+1. Atualizar para main (as PRs #37/#38 já foram integradas), ativar o virtualenv e
    executar `python manage.py migrate` e `python manage.py configurar_perfis`.
 2. Definir `OP_APP_TURNOS_ENABLED=True` no ambiente local e reiniciar o servidor.
    A opção continua False em instalações que não optarem pela nova operação.
@@ -147,3 +150,9 @@ A edição exibe histórico somente leitura (vigência, origem/destino, autor, d
 transferida) ao Coordenador autorizado, Administrador e superusuário. A lista de trabalhadores
 oferece a esses perfis um filtro de turno habitual vigente **hoje**, incluindo Turno não
 informado, preservando o escopo de setores. Mudanças futuras não antecipam esse filtro.
+
+## Regra entre setores ainda em definição
+
+A [issue #39](https://github.com/AldomarAssolin/op-app-industrial/issues/39) registra a
+definição futura da compatibilidade entre o setor principal do trabalhador e o da tarefa,
+inclusive para perfis com alcance global. Não houve alteração dessa regra nesta reconciliação.

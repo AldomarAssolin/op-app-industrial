@@ -58,3 +58,11 @@ Roteiro de aceite visual e de uso (registrar o resultado após executar):
 Não há migração nem nova variável de ambiente. Implantar o código revisado e conferir os
 fluxos. Para reversão de código, usar a imagem anterior aprovada conforme o roteiro de
 operação; a base de dados e a configuração das páginas públicas não mudam nesta entrega.
+
+## Estado do aceite — 22/11/2026
+
+Implementação da PR #31 integrada e aceita localmente por Manex. A implantação posterior
+da main foi confirmada pelo operador. Isso não comprova execução individual do roteiro de
+tela estreita/celular, zoom, Tab/Shift+Tab e foco em /app/; manter essas conferências pendentes.
+Veja [estado das entregas](estado-entregas-2026-11-22.md). Com turnos habilitados, os atalhos
+também dependem dos vínculos/responsabilidades da #36, além das permissões do perfil.

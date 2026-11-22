@@ -65,5 +65,9 @@ Suíte completa PostgreSQL e imagem são verificadas no CI.
 - Em desktop e celular, testar leitura, quebra da sequência, zoom, Tab/Shift+Tab e foco
   dos links, nos temas existentes. Orientação não aparece na impressão do quadro.
 
-Não houve inspeção visual independente nem deploy nesta entrega. Não há migração ou
-nova variável de ambiente; a imagem deve coletar os estáticos como já faz atualmente.
+A PR #34 foi integrada e Manex confirmou o aceite local. O código foi incluído na implantação
+posterior da main. Não há inspeção visual independente nem confirmação explícita de toda a
+matriz de estados vazios e perfis em produção; essa conferência específica permanece pendente.
+Com turnos habilitados, a orientação também respeita a política da #36. Veja
+[estado das entregas](estado-entregas-2026-11-22.md). Não há migração nem variável nova
+própria da #25; a imagem coleta os estáticos como já previsto.

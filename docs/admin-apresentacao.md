@@ -30,7 +30,7 @@ cabeçalho 8,89:1; botão 7,72:1 e hover 5,92:1; borda/superfície 3,26:1. Os pa
 texto das mensagens de sucesso/aviso/erro também superam 4,5:1. Estes cálculos não
 substituem inspeção do estilo computado, de todos os estados ou avaliação visual.
 
-## Aceite visual pendente
+## Roteiro visual de referência e conferências específicas
 
 - Conferir home em 1440 e 1920 px: conjunto centralizado e ações alinhadas, sem excesso
   de espaço entre nome e botões; testar também pouco ou nenhum histórico recente.
@@ -46,11 +46,14 @@ substituem inspeção do estilo computado, de todos os estados ou avaliação vi
 
 Não há migração, variável de ambiente nova ou alteração de permissões. O deploy precisa
 incluir os templates do projeto e executar collectstatic, como já previsto na imagem.
-Nenhum deploy ou aceite visual é declarado por este documento.
+Manex confirmou aceite visual local, inclusive do complemento nos índices, e depois
+validação em produção. Não há inspeção visual independente do assistente. Larguras exatas,
+zoom, teclado e todas as combinações de tema/estados do roteiro não foram confirmados
+individualmente; continuam como conferências específicas, sem reabrir a implementação.
 
 ## Complemento do aceite
 
 Manex aprovou visualmente a implementação inicial e identificou o mesmo problema nos
 índices Organização e Planejamento. O ajuste foi ampliado a esses índices; a conferência
-visual desse complemento permanece pendente. O teste de integração cobre os dois
+visual desse complemento foi aprovada pelo operador antes do merge da PR #33. O teste de integração cobre os dois
 endereços e verifica que listagens/formulários não recebem a classe dos índices.

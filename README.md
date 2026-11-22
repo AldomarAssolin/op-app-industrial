@@ -2,7 +2,7 @@
 
 Sistema independente para **planejamento e distribuição diária de trabalhadores em tarefas industriais**, com consulta consolidada por semana. O projeto busca evoluir o planejamento hoje realizado em planilhas, preservando a simplicidade do processo operacional.
 
-> **Estado do projeto:** MVP funcional das issues #1 a #6 implementado e aceito localmente. A aplicação já foi implantada e teve verificações informadas pelo operador; o aceite operacional permanece na issue #16. Consulte o [registro da implantação](docs/implantacao-2026-11-17.md) e o [roteiro de operação e recuperação](docs/operacao-piloto.md).
+> **Estado do projeto — 22/11/2026:** MVP v1.0.0 publicado; piloto (#16/#22) concluído. As evoluções de página pública, navegação, primeiro uso e turnos foram integradas; Manex confirmou implantação e aceite de produção dos turnos em 21/11. Confira [estado das entregas e pendências](docs/estado-entregas-2026-11-22.md), [regras de turnos](docs/autorizacao-turnos.md) e [operação e recuperação](docs/operacao-piloto.md). A tag v1.0.0 preserva o marco inicial e não inclui todas as evoluções de main.
 
 ## 1. Objetivo e contexto
 
@@ -36,7 +36,7 @@ O OP-APP é **independente do GTH Agents**: possui repositório, banco de dados,
 | Organização | Cadastro de setores, funções e trabalhadores no Admin (issue #2) |
 | Planejamento | Tarefas/histórico (issue #3) e alocações diárias com seleção multidiária (issue #4) no Admin |
 | Consulta semanal | Quadro em `/planejamento/semanal/` com semana, setor autorizado, navegação e impressão (issue #5) |
-| Autorização operacional | Restrições de acesso por papel e setor |
+| Autorização operacional | Restrições por papel e setor; com turnos habilitados, responsabilidade do Coordenador e vínculos de Líder por setor/turno (#35/#36) |
 
 **Fora do MVP inicial:** controle de horas e produtividade, manutenção, cadastro técnico de equipamentos, ordens de produção completas, React, API pública e integração com o GTH Agents.
 
@@ -218,7 +218,7 @@ python manage.py migrate --check
 
 O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, valida o Compose real do projeto, inicia PostgreSQL 17, aplica e confere migrações e roda a suíte em Python 3.12. Os valores de ambiente do CI são descartáveis e não usam credenciais locais. O `down -v` do workflow remove apenas o banco descartável do runner; não é uma instrução de limpeza para seu banco local.
 
-## 7. Decisões de domínio (planejadas)
+## 7. Decisões de domínio
 
 - Uma **tarefa** pode durar vários dias ou semanas.
 - Uma tarefa pode envolver **múltiplos trabalhadores**.
@@ -255,7 +255,7 @@ A issue #6 estende o escopo às listagens, detalhes, escolhas e gravações do A
 
 Os perfis são Administrador (operação global), Coordenador, Líder e Consulta (setores vinculados). Consulta não grava. Administrador operacional não gerencia credenciais, grupos ou concessões: essa configuração é exclusiva do superusuário. Alocações exigem autorização tanto para o setor da tarefa quanto para o setor principal do trabalhador. Novas alterações de tarefa pelo Admin registram o ator no histórico.
 
-A issue #6 foi concluída por aceite local combinado de navegador e testes HTTP. A implantação e as pendências operacionais do piloto são acompanhadas separadamente pela issue #16; confira [operação e recuperação](docs/operacao-piloto.md).
+A issue #6 foi concluída por aceite local combinado de navegador e testes HTTP. O piloto da #16 e a Release da #22 foram concluídos posteriormente; as #35/#36 acrescentam turnos e autorização. Confira [estado das entregas](docs/estado-entregas-2026-11-22.md) e [operação e recuperação](docs/operacao-piloto.md).
 
 - Não versionar senhas, chaves, tokens ou o arquivo `.env`.
 - Restringir o banco de desenvolvimento a `127.0.0.1`.
@@ -289,7 +289,7 @@ Um teste só deve ser marcado como aprovado após sua execução. Commits e merg
 | #004 | Alocações diárias | Implementadas no Admin; validação pelo CI |
 | #005 | Visualização semanal | Implementada; validação pelo CI |
 | #006 | Permissões e validação do MVP | Concluída por aceite local combinado; evidências em docs/ |
-| #016 | Implantação e operação do piloto | Aplicação implantada; automação, recuperação e aceite operacional em andamento |
+| #016 | Implantação e operação do piloto | Concluída; aceite técnico e limites registrados na #16 e na v1.0.0 |
 
 *Numeração conferida nas issues do repositório. Consulte o GitHub para o estado atualizado.*
 
@@ -301,9 +301,9 @@ A evolução da apresentação pública está descrita em [docs/pagina-publica.m
 
 As decisões de arquitetura, regras de negócio e guias técnicos serão mantidos em `docs/`. O README deve continuar sendo o ponto de entrada do projeto, sem acumular toda a especificação funcional.
 
-O [registro da implantação de 17/11/2026](docs/implantacao-2026-11-17.md) reúne as entregas, validações informadas pelo operador, ensaio de recuperação, cópia criptografada no Drive e pendências da issue #16. Consulte esse registro para o andamento da implantação; as referências históricas acima não representam o estado operacional atual.
+O [registro da implantação de 17/11/2026](docs/implantacao-2026-11-17.md) é histórico. Para o estado atual, aceites e conferências ainda pendentes, consulte [estado das entregas em 22/11/2026](docs/estado-entregas-2026-11-22.md).
 
-Para configurar o piloto em industrial.manexlabs.dev, consulte o [roteiro do EasyPanel](docs/easypanel-configuracao.md). Ele descreve banco, aplicação, variáveis, domínio e verificações. Para backups diários, retenção de 30 dias, recuperação e release, consulte o [roteiro operacional](docs/operacao-piloto.md); a issue #16 continua aberta até o aceite operacional.
+Para configurar o piloto em industrial.manexlabs.dev, consulte o [roteiro do EasyPanel](docs/easypanel-configuracao.md). Ele descreve banco, aplicação, variáveis, domínio e verificações. Para backups diários, retenção de 30 dias, recuperação e release, consulte o [roteiro operacional](docs/operacao-piloto.md); a issue #16 está concluída; o acompanhamento de backups e ensaios periódicos continua sendo responsabilidade operacional.
 
 ---
 

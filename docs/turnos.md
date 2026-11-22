@@ -7,8 +7,9 @@ por setor/turno, disponível por opt-in. `OP_APP_TURNOS_ENABLED=False` permanece
 True passa a permitir inicialização. Isso não configura contas nem autoriza implantação.
 
 Consultar [autorizacao-turnos.md](autorizacao-turnos.md) para configuração, regras e aceite
-conjunto. Sem responsabilidade/vínculo explícito, Coordenador/Líder não recebem acesso
-operacional ao ativar a opção. A #26 e os filtros da #27 dependem desse aceite.
+conjunto. O aceite local e o de produção foram confirmados por Manex em 21/11/2026;
+veja [estado das entregas](estado-entregas-2026-11-22.md). Sem responsabilidade/vínculo
+explícito, Coordenador/Líder não recebem acesso operacional ao ativar a opção.
 
 ## Domínio preparado
 
@@ -88,8 +89,9 @@ confirmações simultâneas, turnos distintos para a mesma pessoa/data e exclus�
 concorrente com edição entre tarefas. Os demais passaram
 localmente em SQLite; PostgreSQL e suíte completa são conferidos no CI.
 
-Validação visual e de uso dos caminhos preparados ocorrerá em ensaio sintético junto
-com a #36, antes de qualquer ativação em produção. A cobertura adicional de isolamento
+O ensaio local conjunto com a #36 e o roteiro final em produção foram aprovados por Manex.
+Esta confirmação não equivale a inspeção independente do assistente nem a avaliação
+específica de todas as combinações de dispositivo, zoom e teclado. A cobertura adicional de isolamento
 e encerramento compartilhado está em `test_autorizacao_turnos.py`.
 
 ## Migração e reversão
@@ -104,7 +106,8 @@ reversão de planejamento 0004 recusa retirar estruturas se existirem classifica
 histórico de turnos, para não apagá-los. Depois da ativação futura, NÃO voltar só a imagem
 antiga: ela não conhece os novos invariantes. Usar recuperação conjunta de imagem/banco
 validada em cópia e decisão operacional explícita, considerando registros posteriores.
-Nenhum deploy ou reversão foi executado por esta entrega.
+Manex confirmou a implantação e a ativação posteriores à integração das PRs #37/#38.
+Não houve novo ensaio de reversão/restauração após a ativação nesta rodada.
 
 ## Correção após revisão
 
