@@ -39,20 +39,22 @@ def _revisar(ator, payload):
         pessoas = list(Trabalhador.objects.filter(pk__in=ids).order_by('pk'))
         if len(pessoas) != len(ids):
             raise ValueError()
-        funcao = Funcao.objects.get(pk=payload['funcao'])
+        atividades = list(tarefa.atividades.order_by('pk'))
+        if not atividades:
+            raise ValidationError('Cadastre as atividades na tarefa antes de planejar a equipe.')
         turno = Turno.objects.get(pk=payload['turno'], ativo=True) if payload['turno'] else None
     except (ValueError, TypeError, KeyError, Tarefa.DoesNotExist, Funcao.DoesNotExist, Turno.DoesNotExist) as erro:
         raise ValidationError('A seleção não está mais disponível. Confira os campos e revise novamente.') from erro
     linhas = []
     snapshot = [tarefa.pk, tarefa.titulo, tarefa.setor_id, tarefa.status,
-                str(tarefa.inicio_previsto), str(tarefa.fim_previsto), funcao.pk, funcao.nome,
-                turno.pk if turno else None]
+                str(tarefa.inicio_previsto), str(tarefa.fim_previsto),
+                turno.pk if turno else None, [(a.pk, a.nome) for a in atividades]]
     for pessoa in pessoas:
         snapshot.append([pessoa.pk, pessoa.nome, pessoa.setor_principal_id, pessoa.ativo,
                          list(pessoa.mudancas_turno.order_by('pk').values_list('pk', 'vigencia', 'turno_novo_id'))])
         for dia in sorted(datas):
             obj = Alocacao(trabalhador=pessoa, tarefa=tarefa, data=dia, turno=turno,
-                           funcao_desempenhada=funcao, observacao=payload['observacao'],
+                           observacao=payload['observacao'],
                            criado_por=ator, alterado_por=ator)
             # Checar escopo antes de qualquer mensagem com nome de pessoa.
             exigir_escopo_objeto(ator, obj)
@@ -68,14 +70,13 @@ def _revisar(ator, payload):
                 raise ValidationError(f'{pessoa.nome} · {dia:%d/%m/%Y}: ' + ' '.join(erro.messages)) from erro
             linhas.append(obj)
     resumo = hashlib.sha256(json.dumps(snapshot, default=str, sort_keys=True).encode()).hexdigest()
-    return {'linhas':linhas, 'resumo':resumo, 'tarefa':tarefa, 'pessoas':pessoas, 'funcao':funcao, 'turno':turno}
+    return {'linhas':linhas, 'resumo':resumo, 'tarefa':tarefa, 'pessoas':pessoas, 'atividades':atividades, 'turno':turno}
 
 
 def revisar_planejamento(*, ator, dados):
     payload = {'tarefa':dados['tarefa'].pk,
                'trabalhadores':sorted(p.pk for p in dados['trabalhadores']),
                'datas':sorted(d.isoformat() for d in dados['datas']),
-               'funcao':dados['funcao_desempenhada'].pk,
                'turno':dados.get('turno').pk if dados.get('turno') else None,
                'observacao':dados.get('observacao', '')}
     revisao = _revisar(ator, payload)

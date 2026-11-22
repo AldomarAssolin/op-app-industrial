@@ -62,7 +62,7 @@ class AutorizacaoTests(TestCase):
     def dados_tarefa(self, tarefa=None, **extras):
         tarefa = tarefa or self.tarefa
         registros = list(tarefa.historico.filter(setor=self.setor))
-        dados = {"titulo": tarefa.titulo, "setor": tarefa.setor_id,
+        dados = {"atividades_da_tarefa":[self.funcao.pk], "titulo": tarefa.titulo, "setor": tarefa.setor_id,
                  "inicio_previsto": "2026-11-02", "fim_previsto": "2026-11-20",
                  "status": tarefa.status, "historico-TOTAL_FORMS": str(len(registros)),
                  "historico-INITIAL_FORMS": str(len(registros)), **extras}

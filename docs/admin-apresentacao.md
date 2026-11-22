@@ -57,3 +57,18 @@ Manex aprovou visualmente a implementação inicial e identificou o mesmo proble
 índices Organização e Planejamento. O ajuste foi ampliado a esses índices; a conferência
 visual desse complemento foi aprovada pelo operador antes do merge da PR #33. O teste de integração cobre os dois
 endereços e verifica que listagens/formulários não recebem a classe dos índices.
+
+
+## Links de consulta, histórico e turnos da tarefa
+
+Campos somente de leitura preservam o nome do cadastro relacionado, mas só exibem link quando o usuário pode consultar ou editar esse destino. Exemplo: o Coordenador vê o autor no histórico sem receber um link para a administração técnica de usuários. O Líder vê o nome do setor sem um link para um cadastro fora das suas permissões. O acesso direto continua bloqueado pelo servidor.
+
+O erro 403 apresenta orientação amigável e caminhos para a área de trabalho e administração, mantendo o status HTTP 403. Não são exibidos detalhes de exceção ou dados do registro negado.
+
+O histórico mostra os nomes das atividades, escapados como texto, preservando os IDs e nomes na fotografia JSON armazenada. Não altera o histórico existente.
+
+Turnos tarefas deve mostrar todas as participações autorizadas, ativas ou inativas, já no GET inicial do Coordenador e dos perfis administrativos. O Líder não recebe edição desse bloco. A consulta do inline aplica explicitamente o escopo; não usa a checagem genérica do InlineModelAdmin sem a tarefa pai, que ocultava registros do Coordenador. Duplicidades continuam inválidas e não criam novos vínculos.
+
+### Manutenção dos templates do Admin
+
+`templates/admin/includes/fieldset.html` e `templates/admin/edit_inline/tabular.html` acompanham a estrutura do Django 5.2 e substituem apenas a renderização do valor readonly pela tag `readonly_com_acesso`. Ao atualizar Django, comparar os templates com a nova versão, mantendo acessibilidade e os testes de links por perfil. Não há alteração global das classes internas do framework.

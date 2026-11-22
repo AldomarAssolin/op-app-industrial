@@ -7,3 +7,13 @@
 .review-table th,.review-table td {text-align:left;border:1px solid #cfdae2;padding:10px;} .review-scroll {overflow-x:auto;}
 .actions {display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin-block:20px;}
 @media(max-width:600px) {.operation-panel {padding:16px;} .review-table {font-size:.9rem;}}
+
+.planning-choices {border:1px solid #cfdae2;border-radius:5px;padding:14px;margin:0 0 18px;min-width:0;}
+.planning-choices legend {font-weight:600;padding:0 6px;}
+.planning-choices label {display:flex;align-items:baseline;gap:8px;padding:6px;overflow-wrap:anywhere;}
+.planning-choices [data-turno-referencia] {max-height:320px;overflow-y:auto;}
+[data-task-period] {font-weight:600;}
+
+.activity-menu {border:1px solid #8ba3b4;border-radius:5px;margin-bottom:18px;}
+.activity-menu summary {cursor:pointer;padding:12px;font-weight:600;}
+.activity-menu .planning-choices {border:0;max-height:320px;overflow:auto;}

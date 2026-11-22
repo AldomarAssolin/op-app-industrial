@@ -29,6 +29,13 @@ class Tarefa(models.Model):
                               default=Status.PENDENTE)
     observacoes = models.TextField("observações", blank=True)
 
+    atividades = models.ManyToManyField('organizacao.Funcao', through='AtividadeTarefa',
+        related_name='tarefas', verbose_name='atividades da tarefa', editable=False)
+
+    @property
+    def atividades_descricao(self):
+        return ', '.join(a.nome for a in self.atividades.all()) or 'Atividades não informadas'
+
     # Toda retomada passa por PENDENTE; concluir exige início explícito.
     TRANSICOES = {
         Status.PENDENTE: {Status.EM_ANDAMENTO, Status.CANCELADA},
@@ -91,7 +98,7 @@ class Tarefa(models.Model):
                     "fim_previsto": "O período deve abranger todas as alocações existentes. Corrija os dias antes de reduzir o prazo."
                 })
 
-    def save(self, *args, ator=None, turno_operacao=None, **kwargs):
+    def save(self, *args, ator=None, turno_operacao=None, atividades=None, **kwargs):
         update_fields = kwargs.get("update_fields")
         if update_fields is not None and not update_fields:
             return
@@ -149,15 +156,30 @@ class Tarefa(models.Model):
                     from apps.organizacao.models import Turno
                     if not Turno.objects.filter(pk=codigo, ativo=True).exists():
                         raise ValidationError('Selecione um turno ativo.')
+            anteriores_atividades = list(self.atividades.order_by('pk').values_list('pk', flat=True)) if anterior else []
+            selecionadas = None
+            if atividades is not None:
+                from apps.organizacao.models import Funcao
+                ids = sorted({a.pk for a in atividades})
+                selecionadas = list(Funcao.objects.using(using).select_for_update().filter(pk__in=ids).order_by('pk'))
+                if not ids or len(selecionadas) != len(ids):
+                    raise ValidationError('Selecione uma ou mais atividades da tarefa.')
+                if anterior and ids != anteriores_atividades and ator is not None and settings.OP_APP_TURNOS_ENABLED:
+                    if not (administrador(ator) or coordenador_no_setor(ator, anterior.setor_id)):
+                        raise PermissionDenied('Atividades da tarefa são dados gerais, alterados pelo Coordenador.')
             self.full_clean()
             super().save(*args, **kwargs)
+            if selecionadas is not None:
+                self.atividades.set(selecionadas)
+            atividades_mudaram = selecionadas is not None and anteriores_atividades != [a.pk for a in selecionadas]
+
             if settings.OP_APP_TURNOS_ENABLED and anterior is None and turno_operacao is not None:
                 TurnoTarefa.objects.bulk_create([TurnoTarefa(tarefa=self, turno_id=getattr(turno_operacao, 'pk', turno_operacao), registrado_por=ator)])
-            if anterior is None or any(
+            if anterior is None or atividades_mudaram or any(
                 getattr(self, campo) != getattr(anterior, campo) for campo in self.CAMPOS_HISTORICO
             ):
                 HistoricoTarefa.objects.using(using).create(
-                    tarefa=self, registrado_por=ator, turno_operacao_id=getattr(turno_operacao, 'pk', turno_operacao) if settings.OP_APP_TURNOS_ENABLED else None, **{campo: getattr(self, campo) for campo in self.CAMPOS_HISTORICO}
+                    tarefa=self, registrado_por=ator, atividades=[{'id':a.pk, 'nome':a.nome} for a in self.atividades.all()], turno_operacao_id=getattr(turno_operacao, 'pk', turno_operacao) if settings.OP_APP_TURNOS_ENABLED else None, **{campo: getattr(self, campo) for campo in self.CAMPOS_HISTORICO}
                 )
 
 
@@ -169,6 +191,7 @@ class HistoricoTarefa(models.Model):
     registrado_em = models.DateTimeField("registrado em", auto_now_add=True)
     registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
         editable=False, on_delete=models.PROTECT, related_name="historico_tarefas", verbose_name="registrado por")
+    atividades = models.JSONField(default=list, blank=True, editable=False)
     status = models.CharField(max_length=20, choices=Tarefa.Status.choices)
     inicio_previsto = models.DateField("início previsto")
     fim_previsto = models.DateField("conclusão prevista")
@@ -193,7 +216,7 @@ class Alocacao(models.Model):
     tarefa = models.ForeignKey(Tarefa, on_delete=models.PROTECT, related_name="alocacoes")
     data = models.DateField("data")
     funcao_desempenhada = models.ForeignKey("organizacao.Funcao", on_delete=models.PROTECT,
-                                           related_name="alocacoes", verbose_name="função desempenhada")
+                                           related_name="alocacoes", verbose_name="função desempenhada", null=True, blank=True, editable=False)
     observacao = models.TextField("observação", blank=True)
     criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                    related_name="alocacoes_criadas", editable=False)
@@ -411,3 +434,11 @@ class ConfirmacaoPlanejamento(models.Model):
     resumo = models.CharField(max_length=64)
     quantidade = models.PositiveIntegerField()
     registrado_em = models.DateTimeField(auto_now_add=True)
+
+
+class AtividadeTarefa(models.Model):
+    tarefa = models.ForeignKey(Tarefa, on_delete=models.CASCADE)
+    atividade = models.ForeignKey('organizacao.Funcao', on_delete=models.PROTECT)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=('tarefa', 'atividade'), name='tarefa_atividade_unica')]

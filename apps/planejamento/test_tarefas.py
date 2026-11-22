@@ -187,6 +187,8 @@ class TarefaAdminTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.admin = get_user_model().objects.create_superuser(username="admin_tarefa")
+        from apps.organizacao.models import Funcao
+        cls.atividade = Funcao.objects.create(nome="Montagem")
         cls.setor = Setor.objects.create(nome="Caldeiraria")
 
     def setUp(self):
@@ -194,7 +196,7 @@ class TarefaAdminTests(TestCase):
 
     def dados(self, tarefa=None, **extras):
         registros = list(tarefa.historico.all()) if tarefa else []
-        dados = {"titulo": "Eixo THC 95", "setor": self.setor.pk,
+        dados = {"atividades_da_tarefa":[self.atividade.pk], "titulo": "Eixo THC 95", "setor": self.setor.pk,
                 "inicio_previsto": "2026-11-02", "fim_previsto": "2026-11-20",
                 "status": "PENDENTE", "historico-TOTAL_FORMS": str(len(registros)),
                 "historico-INITIAL_FORMS": str(len(registros)), **extras}

@@ -2,12 +2,12 @@
 
 ## Fluxo
 
-`/planejamento/planejar/` oferece tarefa, pessoas, função, turno (quando habilitado),
+`/planejamento/planejar/` oferece tarefa, pessoas, turno (quando habilitado),
 período e dias da semana. Até 1.000 alocações por confirmação. As opções usam o escopo
 atual e o habitual no início informado; ao mudar o início, o seletor atualiza as opções.
 Todos os dias escolhidos são revalidados individualmente no backend.
 
-Revisar não grava. A tela identifica tarefa, setor, função, turno, pessoas, datas e quantidade.
+Revisar não grava. A tela identifica tarefa, setor, atividades da tarefa, turno, pessoas, datas e quantidade.
 A confirmação assinada expira em 30 minutos, pertence ao usuário e à configuração de turnos.
 O POST final recarrega e revalida acesso, participação da tarefa, atividade, datas, habitual,
 conflitos e duplicidade. Mudanças nos dados revisados exigem nova revisão. Erros preservam
@@ -41,7 +41,7 @@ inclusive em semanas passadas; não reconstitui o estado histórico naquela sema
 O quadro diferencia semana vazia, combinação sem resultados e ausência de acesso sem
 revelar registros ocultos. Correção/remoção aparecem conforme permissões, com endpoints
 independentes igualmente protegidos. A correção permite trabalhador autorizado, data,
-função e observação; tarefa e turno daquele registro permanecem identificados. Troca de
+observação; atividades são consultadas na tarefa, e tarefa e turno daquele registro permanecem identificados. Troca de
 habitual e transferência futura continuam no fluxo do Coordenador da #35/#36.
 
 Salvar correção exige versão assinada do registro, revalidada sob os bloqueios; edição
@@ -59,3 +59,22 @@ Manex decidiu manter a regra entre setores atual: #39 adiada para outra versão.
 implementado empréstimo de equipe nem proibição nova, inclusive para perfis globais.
 A avaliação com participante e a verificação aprofundada de dispositivo, acessibilidade,
 filtros e concorrência continuam na #28; testes automatizados não substituem esse aceite.
+
+
+## Vocabulário e seleção de atividades
+
+**Funções**, no cadastro atual, significa atividades necessárias à execução da tarefa; não significa competência profissional do trabalhador. Exemplos: montagem, soldagem, usinagem e calandragem. A interface de planejamento usa **Atividades da tarefa** para explicitar essa diferença.
+
+No cadastro de uma tarefa, mantenha os dados atuais e marque uma ou várias **Atividades da tarefa** no menu expansível, usando as opções de Funções. Novas tarefas exigem ao menos uma atividade. O Líder pode escolher na criação; alterações posteriores seguem a regra dos dados gerais: Coordenador do setor, Administrador ou superusuário. O histórico guarda as atividades com autor e data.
+
+Em Planejar e em Adicionar alocação diária, escolha a tarefa e as pessoas/dias/turno. As atividades são apenas consultadas, nunca selecionadas ou alteradas nesses formulários. A correção de alocação também não altera atividades. A equipe atende ao conjunto; o sistema não distribui atividades individualmente nem valida competências.
+
+Todas as alocações consultam as atividades atuais da tarefa. Se o Coordenador alterar o conjunto, sua exibição muda para todas as alocações da tarefa; o histórico da tarefa preserva a fotografia anterior. Uma pessoa com duas atividades permanece uma alocação por tarefa e dia. Datas fora do período são rejeitadas sem gravação parcial.
+
+### Banco local e implantação
+
+Esta candidata será validada com banco local limpo. Não há conversão ou inferência das atividades de alocações antigas. O campo técnico legado `Alocacao.funcao_desempenhada` permanece apenas como coluna opcional de compatibilidade, fora dos formulários e sem preenchimento automático nas novas alocações. A fonte oficial de atividades é `Tarefa.atividades`, relacionada a `Funcao` (nome preservado).
+
+As migrações já publicadas são preservadas. A migração 0007 ainda não integrada foi substituída; quem aplicou a versão anterior da PR deve recriar somente o banco local conforme [o roteiro de reinício](reinicio-local-testes.md). Produção continua intacta até a conclusão e aprovação desta versão. O eventual reset de produção será tratado na implantação final, após backup e conferência de dados reais.
+
+Competências individuais e GTH Agents ficam para versões futuras. A regra entre setores (#39) permanece inalterada.

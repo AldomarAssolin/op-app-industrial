@@ -7,7 +7,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_http_methods
 from apps.organizacao.autorizacao import exigir_operacao, filtrar_escopo, ator_atual
-from apps.organizacao.models import Trabalhador
+from apps.organizacao.models import Trabalhador, Funcao
 from .models import Alocacao, Tarefa
 from .forms import TrabalhadorTurnoChoiceField
 from .views_operacionais import navegacao_operacional
@@ -20,7 +20,7 @@ class CorrecaoForm(forms.ModelForm):
 
     class Meta:
         model = Alocacao
-        fields = ('tarefa','trabalhador','data','funcao_desempenhada','observacao')
+        fields = ('tarefa','trabalhador','data','observacao')
         widgets = {'data':forms.DateInput(attrs={'type':'date'}, format='%Y-%m-%d')}
         field_classes = {'trabalhador':TrabalhadorTurnoChoiceField}
 

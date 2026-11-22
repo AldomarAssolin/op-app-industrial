@@ -1,0 +1,10 @@
+{% extends "planejamento/operacional/base.html" %}
+{% block title %}Acesso não permitido | OP-APP{% endblock %}
+{% block content %}
+<section class="notice" aria-labelledby="acesso-titulo">
+<h1 id="acesso-titulo">Acesso não permitido</h1>
+<p>Seu perfil não permite realizar esta ação ou acessar este cadastro.</p>
+<p>Se precisar desse acesso para trabalhar, solicite ao responsável a revisão do seu perfil e dos vínculos de setor e turno.</p>
+<p><a href="{% url 'entrada_operacional' %}">Voltar à área de trabalho</a>{% if request.user.is_staff %} · <a href="{% url 'admin:index' %}">Abrir administração</a>{% endif %}</p>
+</section>
+{% endblock %}

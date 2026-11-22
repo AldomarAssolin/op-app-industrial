@@ -13,13 +13,21 @@ O primeiro módulo do OP-APP apoiará coordenadores e líderes na distribuição
 
 Exemplo de planejamento de origem:
 
-| Trabalhador | Função na atividade | Tarefa | Dias |
+| Trabalhador | Atividades da tarefa | Tarefa | Dias |
 | --- | --- | --- | --- |
 | Aldomar | Montagem/Soldagem | Eixo THC 95 | Segunda a quinta |
 
 No modelo proposto, essa linha representa **quatro alocações diárias** vinculadas à mesma tarefa. A consulta semanal reunirá as alocações em uma grade semelhante à planilha.
 
 O OP-APP é **independente do GTH Agents**: possui repositório, banco de dados, configuração, autenticação e evolução próprios. Uma eventual integração futura deverá ocorrer por interfaces explícitas (por exemplo, API REST), sem compartilhar tabelas entre os sistemas.
+
+### Atividades da tarefa e o cadastro de Funções
+
+Nesta versão, **Funções** é o nome histórico do cadastro de **atividades necessárias à tarefa**, como montagem, soldagem, usinagem e calandragem. Não representa cargo, competência, qualificação ou habilitação individual do trabalhador.
+
+No cadastro da tarefa, selecione uma ou várias **Atividades da tarefa**. No planejamento, escolha a tarefa e os trabalhadores da equipe. Para a tarefa *Eixo THC 95*, montagem e soldagem podem compor o mesmo planejamento: isso não significa que cada integrante realizará todas as atividades. As atividades pertencem à tarefa e são consultadas por todas as suas alocações, sem gerar duplicações. Alterações ficam no cadastro da tarefa, com autoria e histórico.
+
+O escopo atual é alocar trabalhadores às tarefas, por dia e turno. Não inclui matriz de competências, apontamento de horas ou comprovação de disponibilidade. Funções profissionais individuais poderão ser tratadas em versão futura, eventualmente com integração ao GTH Agents, sem dependência nesta versão.
 
 ## 2. Escopo
 
@@ -230,7 +238,7 @@ O workflow **Setup Django e PostgreSQL** executa a instalação pelo manifesto, 
 - A combinação `(trabalhador, tarefa, data)` deverá ser única para evitar duplicações acidentais.
 - A **semana** será inicialmente um filtro de consulta, sem tabela própria.
 - Equipes serão dinâmicas, formadas pelas alocações, sem cadastro de equipes fixas no MVP.
-- Função profissional e perfil de acesso serão conceitos distintos.
+- O cadastro Funções representa atividades necessárias à tarefa; perfis de acesso definem permissões. Competências profissionais individuais ficam fora deste escopo.
 
 As regras de tarefas e alocações diárias estão implementadas; o quadro semanal consulta os registros existentes sem tabela própria de semana. Os cadastros organizacionais já estão implementados; consulte [docs/organizacao.md](docs/organizacao.md) para normalização, homônimos, inativação, exclusão protegida e uso no Admin.
 

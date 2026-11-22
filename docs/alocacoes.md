@@ -2,9 +2,9 @@
 
 ## O que representa uma alocação
 
-Uma alocação relaciona **trabalhador + tarefa + data**, com função desempenhada, observação e autoria. É participação planejada naquele dia: não equivale a dedicação exclusiva, jornada completa, horas trabalhadas ou capacidade disponível.
+Uma alocação relaciona **trabalhador + tarefa + data**, com atividades necessárias à tarefa, observação e autoria. É participação planejada naquele dia: não equivale a dedicação exclusiva, jornada completa, horas trabalhadas ou capacidade disponível.
 
-O exemplo `Pessoa Exemplo | Montagem/Soldagem | Eixo THC 95 | segunda a quinta` gera quatro registros independentes. Outra tarefa na terça gera um quinto registro, sem substituir a primeira. Função desempenhada é um vínculo a `Funcao` e pode ser diferente da função principal do trabalhador; use o cadastro profissional adequado à atividade.
+O exemplo `Pessoa Exemplo | Montagem/Soldagem | Eixo THC 95 | segunda a quinta` gera quatro registros independentes. Outra tarefa na terça gera um quinto registro, sem substituir a primeira. O cadastro `Funcao` representa atividades necessárias à tarefa, não competências profissionais. Uma tarefa possui várias atividades, escolhidas no seu cadastro e consultadas por todas as suas alocações. Não há seleção de atividade na alocação. O campo técnico legado `funcao_desempenhada` permanece opcional por compatibilidade e não é preenchido pelo fluxo novo. Consulte [o fluxo operacional](planejamento-operacional.md).
 
 ## Integridade e regras
 
@@ -26,7 +26,7 @@ A issue #4 usa permissões globais nativas do Django nas gravações. A issue #5
 
 ## Operação com vários dias
 
-No Admin, **Planejamento operacional → Alocações diárias → Alocar vários dias** permite escolher trabalhador ativo, tarefa aberta, função, primeiro/último dia e dias da semana. A seleção inclui os limites do período e pode atravessar semanas. O formulário limita cada operação a até 366 dias, para evitar seleções excessivas acidentais.
+No Admin, **Planejamento operacional → Alocações diárias → Alocar vários dias** permite escolher trabalhador ativo, tarefa aberta, primeiro/último dia e dias da semana. A seleção inclui os limites do período e pode atravessar semanas. O formulário limita cada operação a até 366 dias, para evitar seleções excessivas acidentais.
 
 O serviço `alocar_dias` recebe uma lista explícita de datas e usa `transaction.atomic`: ou todos os registros são criados, ou nenhum. Data repetida na seleção, duplicata existente, dia fora do período ou outro erro reverte todo o lote. Não há sobrescrita silenciosa de alocações existentes.
 
@@ -48,7 +48,7 @@ registros = alocar_dias(
 )
 ```
 
-Para corrigir quarta-feira, abra apenas sua alocação no Admin. Mudar observação/função/data ou excluir esse registro não altera segunda, terça e quinta. Exclusão remove o planejamento daquele dia; não é apontamento de produção executada. O histórico de tarefa continua existindo, mas não é um histórico de versões de cada alocação.
+Para corrigir quarta-feira, abra apenas sua alocação no Admin. Mudar observação/data ou excluir esse registro não altera segunda, terça e quinta. Exclusão remove o planejamento daquele dia; não é apontamento de produção executada. O histórico de tarefa continua existindo, mas não é um histórico de versões de cada alocação.
 
 ## Consultas e caminhos suportados
 

@@ -1,5 +1,7 @@
 # Cadastros organizacionais — issue #2
 
+> **Significado nesta versão:** o cadastro Funções contém atividades necessárias à tarefa (montagem, soldagem, usinagem, calandragem), e não cargos ou competências individuais. O campo legado de função principal do trabalhador continua como referência organizacional, sem validar qualificação ou restringir atividades. O conjunto de atividades é escolhido no cadastro da tarefa; a alocação apenas o consulta. Competências individuais e eventual integração ao GTH Agents ficam para versões futuras.
+
 ## Objetivo
 
 Manter a base mínima de setores, funções profissionais e trabalhadores para o planejamento operacional. Este módulo pertence exclusivamente ao OP-APP; não compartilha banco, usuários ou API com o GTH Agents.

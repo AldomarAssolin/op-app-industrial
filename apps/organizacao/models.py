@@ -44,7 +44,7 @@ class Setor(CadastroNomeado):
 
 
 class Funcao(CadastroNomeado):
-    descricao = models.TextField("descrição", blank=True)
+    descricao = models.TextField("descrição", blank=True, help_text="Neste OP-APP, funções são atividades necessárias à tarefa, como montagem, soldagem e usinagem. Não representam cargos ou competências individuais.")
 
     class Meta(CadastroNomeado.Meta):
         verbose_name = "função"
