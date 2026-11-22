@@ -254,6 +254,9 @@ def exigir_escopo_objeto(ator, objeto):
         exigir_setor_turno(ator, trabalhador.setor_principal_id, objeto.turno_id)
     elif rotulo == 'planejamento.tarefa' and not objeto.pk:
         exigir_setores(ator, [objeto.setor_id])
+    elif rotulo == 'organizacao.setor' and not objeto.pk:
+        if not administrador(ator):
+            raise PermissionDenied('Cadastro de setor exige Administrador ou superusuário.')
     elif rotulo == 'organizacao.trabalhador' and not objeto.pk:
         if not administrador(ator) and not coordenador_no_setor(ator, objeto.setor_principal_id):
             raise PermissionDenied('Cadastro de trabalhador exige o Coordenador responsável.')
