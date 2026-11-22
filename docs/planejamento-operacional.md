@@ -2,12 +2,12 @@
 
 ## Fluxo
 
-`/planejamento/planejar/` oferece tarefa, pessoas, função, turno (quando habilitado),
+`/planejamento/planejar/` oferece tarefa, pessoas, atividades da tarefa, turno (quando habilitado),
 período e dias da semana. Até 1.000 alocações por confirmação. As opções usam o escopo
 atual e o habitual no início informado; ao mudar o início, o seletor atualiza as opções.
 Todos os dias escolhidos são revalidados individualmente no backend.
 
-Revisar não grava. A tela identifica tarefa, setor, função, turno, pessoas, datas e quantidade.
+Revisar não grava. A tela identifica tarefa, setor, atividades da tarefa, turno, pessoas, datas e quantidade.
 A confirmação assinada expira em 30 minutos, pertence ao usuário e à configuração de turnos.
 O POST final recarrega e revalida acesso, participação da tarefa, atividade, datas, habitual,
 conflitos e duplicidade. Mudanças nos dados revisados exigem nova revisão. Erros preservam
@@ -41,7 +41,7 @@ inclusive em semanas passadas; não reconstitui o estado histórico naquela sema
 O quadro diferencia semana vazia, combinação sem resultados e ausência de acesso sem
 revelar registros ocultos. Correção/remoção aparecem conforme permissões, com endpoints
 independentes igualmente protegidos. A correção permite trabalhador autorizado, data,
-função e observação; tarefa e turno daquele registro permanecem identificados. Troca de
+atividades da tarefa e observação; tarefa e turno daquele registro permanecem identificados. Troca de
 habitual e transferência futura continuam no fluxo do Coordenador da #35/#36.
 
 Salvar correção exige versão assinada do registro, revalidada sob os bloqueios; edição
@@ -59,3 +59,18 @@ Manex decidiu manter a regra entre setores atual: #39 adiada para outra versão.
 implementado empréstimo de equipe nem proibição nova, inclusive para perfis globais.
 A avaliação com participante e a verificação aprofundada de dispositivo, acessibilidade,
 filtros e concorrência continuam na #28; testes automatizados não substituem esse aceite.
+
+
+## Vocabulário e seleção de atividades
+
+**Funções**, no cadastro atual, significa atividades necessárias à execução da tarefa; não significa competência profissional do trabalhador. Exemplos: montagem, soldagem, usinagem e calandragem. A interface de planejamento usa **Atividades da tarefa** para explicitar essa diferença.
+
+Escolha a tarefa (seu período previsto aparece na seleção), marque os trabalhadores e abra o menu de atividades para marcar uma ou várias opções cadastradas em Funções. Todas as pessoas e dias revisados recebem o mesmo conjunto de atividades do planejamento. A equipe atende ao conjunto; o sistema não distribui cada atividade individualmente, nem valida competências. Planejamentos diferentes da mesma tarefa podem ter conjuntos diferentes.
+
+O quadro semanal e a correção mostram todas as atividades da alocação. Uma pessoa com duas atividades permanece uma alocação por tarefa e dia. Datas fora do período previsto são rejeitadas sem gravação parcial; a tela preserva as seleções para correção.
+
+### Compatibilidade dos registros
+
+O campo técnico legado `funcao_desempenhada` mantém a primeira atividade; as demais são relações adicionais protegidas contra exclusão do cadastro. Registros antigos continuam com a atividade já registrada, sem inferir competências ou alterar o histórico. A correção operacional permite revisar o conjunto. O Admin legado mantém a edição da atividade de referência e mostra as adicionais para consulta; para editar o conjunto, use a correção operacional.
+
+A integração com competências individuais e GTH Agents é uma evolução futura. Esta alteração não introduz validação de habilidades, horas ou disponibilidade, nem muda a regra entre setores (#39).

@@ -174,13 +174,22 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
                    ("funcao_desempenhada", admin.RelatedOnlyFieldListFilter))
     search_fields = ("trabalhador__nome", "tarefa__titulo", "observacao")
     list_select_related = ("trabalhador", "tarefa", "funcao_desempenhada", "alterado_por")
-    readonly_fields = ("criado_por", "alterado_por", "criado_em", "alterado_em")
+    readonly_fields = ("criado_por", "alterado_por", "criado_em", "alterado_em", "atividades_do_planejamento")
     change_list_template = "admin/planejamento/alocacao/change_list.html"
+
+    @admin.display(description='Atividades da tarefa (conjunto)')
+    def atividades_do_planejamento(self, obj):
+        if not obj or not obj.pk:
+            return 'A atividade de referência é escolhida abaixo. Para planejar várias, use Planejar.'
+        return obj.atividades_descricao + '. Para alterar o conjunto, use a correção no quadro semanal.'
 
     class Media:
         js = ('planejamento/js/turno_trabalhador.js',)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'funcao_desempenhada':
+            kwargs['label'] = 'Atividade de referência da tarefa'
+            kwargs['help_text'] = 'Cadastro Funções: trabalhos necessários à tarefa, não competências. Para editar várias atividades, use o quadro semanal.'
         if db_field.name == 'trabalhador' and settings.OP_APP_TURNOS_ENABLED:
             kwargs['form_class'] = TrabalhadorTurnoChoiceField
         if db_field.name == 'turno' and settings.OP_APP_TURNOS_ENABLED:

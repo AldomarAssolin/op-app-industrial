@@ -39,14 +39,18 @@ def _revisar(ator, payload):
         pessoas = list(Trabalhador.objects.filter(pk__in=ids).order_by('pk'))
         if len(pessoas) != len(ids):
             raise ValueError()
-        funcao = Funcao.objects.get(pk=payload['funcao'])
+        ids_atividades = payload.get('atividades', [payload.get('funcao')])
+        atividades = list(Funcao.objects.filter(pk__in=ids_atividades).order_by('pk'))
+        if not atividades or len(atividades) != len(set(ids_atividades)):
+            raise ValueError()
+        funcao = atividades[0]
         turno = Turno.objects.get(pk=payload['turno'], ativo=True) if payload['turno'] else None
     except (ValueError, TypeError, KeyError, Tarefa.DoesNotExist, Funcao.DoesNotExist, Turno.DoesNotExist) as erro:
         raise ValidationError('A seleção não está mais disponível. Confira os campos e revise novamente.') from erro
     linhas = []
     snapshot = [tarefa.pk, tarefa.titulo, tarefa.setor_id, tarefa.status,
                 str(tarefa.inicio_previsto), str(tarefa.fim_previsto), funcao.pk, funcao.nome,
-                turno.pk if turno else None]
+                turno.pk if turno else None, [(a.pk, a.nome) for a in atividades]]
     for pessoa in pessoas:
         snapshot.append([pessoa.pk, pessoa.nome, pessoa.setor_principal_id, pessoa.ativo,
                          list(pessoa.mudancas_turno.order_by('pk').values_list('pk', 'vigencia', 'turno_novo_id'))])
@@ -68,14 +72,14 @@ def _revisar(ator, payload):
                 raise ValidationError(f'{pessoa.nome} · {dia:%d/%m/%Y}: ' + ' '.join(erro.messages)) from erro
             linhas.append(obj)
     resumo = hashlib.sha256(json.dumps(snapshot, default=str, sort_keys=True).encode()).hexdigest()
-    return {'linhas':linhas, 'resumo':resumo, 'tarefa':tarefa, 'pessoas':pessoas, 'funcao':funcao, 'turno':turno}
+    return {'linhas':linhas, 'resumo':resumo, 'tarefa':tarefa, 'pessoas':pessoas, 'funcao':funcao, 'atividades':atividades, 'turno':turno}
 
 
 def revisar_planejamento(*, ator, dados):
     payload = {'tarefa':dados['tarefa'].pk,
                'trabalhadores':sorted(p.pk for p in dados['trabalhadores']),
                'datas':sorted(d.isoformat() for d in dados['datas']),
-               'funcao':dados['funcao_desempenhada'].pk,
+               'atividades':sorted(a.pk for a in dados['atividades']),
                'turno':dados.get('turno').pk if dados.get('turno') else None,
                'observacao':dados.get('observacao', '')}
     revisao = _revisar(ator, payload)
@@ -106,7 +110,7 @@ def confirmar_planejamento(*, ator, token):
     if revisao['resumo'] != dados['resumo']:
         raise ValidationError('Os dados mudaram depois da revisão. Confira e revise novamente.')
     for linha in revisao['linhas']:
-        linha.save(ator=ator)
+        linha.save(ator=ator, atividades=revisao['atividades'])
     recibo = ConfirmacaoPlanejamento.objects.create(id=dados['lote'], registrado_por=ator,
         resumo=digest, quantidade=len(revisao['linhas']))
     return recibo, True

@@ -170,7 +170,7 @@ class QuadroSemanalTests(TestCase):
     def test_consulta_de_muitas_linhas_sem_n_mais_um(self):
         self.alocar([date(2026, 11, dia) for dia in (2, 3, 4, 5)])
         # Superusuário dispensa consulta de permissões; escopo usa subconsulta SQL.
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(2):
             quadro = self.quadro(ator=self.admin)
             self.assertEqual(quadro["linhas"][0]["tarefa"].setor.nome, "Caldeiraria")
 

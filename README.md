@@ -13,13 +13,21 @@ O primeiro módulo do OP-APP apoiará coordenadores e líderes na distribuição
 
 Exemplo de planejamento de origem:
 
-| Trabalhador | Função na atividade | Tarefa | Dias |
+| Trabalhador | Atividades da tarefa | Tarefa | Dias |
 | --- | --- | --- | --- |
 | Aldomar | Montagem/Soldagem | Eixo THC 95 | Segunda a quinta |
 
 No modelo proposto, essa linha representa **quatro alocações diárias** vinculadas à mesma tarefa. A consulta semanal reunirá as alocações em uma grade semelhante à planilha.
 
 O OP-APP é **independente do GTH Agents**: possui repositório, banco de dados, configuração, autenticação e evolução próprios. Uma eventual integração futura deverá ocorrer por interfaces explícitas (por exemplo, API REST), sem compartilhar tabelas entre os sistemas.
+
+### Atividades da tarefa e o cadastro de Funções
+
+Nesta versão, **Funções** é o nome histórico do cadastro de **atividades necessárias à tarefa**, como montagem, soldagem, usinagem e calandragem. Não representa cargo, competência, qualificação ou habilitação individual do trabalhador.
+
+No planejamento, selecione uma ou várias **Atividades da tarefa** e os trabalhadores da equipe. Para a tarefa *Eixo THC 95*, montagem e soldagem podem compor o mesmo planejamento: isso não significa que cada integrante realizará todas as atividades. A seleção vale para o conjunto de pessoas e dias revisado, sem duplicar alocações por atividade. Outros planejamentos da mesma tarefa podem ter conjuntos diferentes.
+
+O escopo atual é alocar trabalhadores às tarefas, por dia e turno. Não inclui matriz de competências, apontamento de horas ou comprovação de disponibilidade. Funções profissionais individuais poderão ser tratadas em versão futura, eventualmente com integração ao GTH Agents, sem dependência nesta versão.
 
 ## 2. Escopo
 

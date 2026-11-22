@@ -22,7 +22,8 @@ class AlocacaoMultidiaForm(forms.Form):
                                          .select_related("setor_principal", "funcao_principal"))
     tarefa = forms.ModelChoiceField(queryset=Tarefa.objects.filter(
         status__in=(Tarefa.Status.PENDENTE, Tarefa.Status.EM_ANDAMENTO)))
-    funcao_desempenhada = forms.ModelChoiceField(label="Função desempenhada",
+    funcao_desempenhada = forms.ModelChoiceField(label="Atividade da tarefa",
+                                                help_text="Atividade cadastrada em Funções; não representa competência individual.",
                                                 queryset=Funcao.objects.all())
     inicio = forms.DateField(label="Primeiro dia", widget=forms.DateInput(attrs={"type": "date"}))
     fim = forms.DateField(label="Último dia", widget=forms.DateInput(attrs={"type": "date"}))
@@ -132,23 +133,50 @@ class TrabalhadoresTurnoChoiceField(forms.ModelMultipleChoiceField):
     label_from_instance = TrabalhadorTurnoChoiceField.label_from_instance
 
 
+class TarefaPeriodoSelect(forms.Select):
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        if value and hasattr(value, 'instance'):
+            tarefa = value.instance
+            option['attrs']['data-inicio'] = tarefa.inicio_previsto.isoformat()
+            option['attrs']['data-fim'] = tarefa.fim_previsto.isoformat()
+            option['label'] = f'{label} — {tarefa.inicio_previsto:%d/%m/%Y} a {tarefa.fim_previsto:%d/%m/%Y}'
+        return option
+
+
 class PlanejarForm(AlocacaoMultidiaForm):
+    atividades = forms.ModelMultipleChoiceField(label='Atividades da tarefa',
+        queryset=Funcao.objects.all(), widget=forms.CheckboxSelectMultiple,
+        help_text='Selecione um ou mais trabalhos necessários à tarefa. A equipe atende ao conjunto; isso não representa competências individuais.')
     trabalhadores = TrabalhadoresTurnoChoiceField(
         label='Trabalhadores', queryset=Trabalhador.objects.none(),
-        widget=forms.SelectMultiple(attrs={'size': 8}))
+        widget=forms.CheckboxSelectMultiple)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['tarefa'].widget = TarefaPeriodoSelect(choices=self.fields['tarefa'].choices)
+        self.fields['tarefa'].help_text = 'As alocações devem estar dentro do período previsto exibido na tarefa.'
+        self.fields.pop('funcao_desempenhada')
         anterior = self.fields.pop('trabalhador')
         campo = self.fields['trabalhadores']
         campo.queryset = anterior.queryset
         campo.help_text = 'Selecione uma ou mais pessoas. ' + str(anterior.help_text)
         if settings.OP_APP_TURNOS_ENABLED:
             campo.widget.attrs['data-turno-referencia'] = 'inicio'
-        self.order_fields(['tarefa', 'inicio', 'fim', 'dias_semana', 'turno', 'trabalhadores', 'funcao_desempenhada', 'observacao'])
+        self.order_fields(['tarefa', 'inicio', 'fim', 'dias_semana', 'turno', 'trabalhadores', 'atividades', 'observacao'])
+
+    class Media:
+        extend = False
+        js = ('planejamento/js/planejar.js',)
 
     def clean(self):
         dados = super().clean()
+        tarefa = dados.get('tarefa')
+        if tarefa and dados.get('datas') and any(
+                not tarefa.inicio_previsto <= dia <= tarefa.fim_previsto for dia in dados['datas']):
+            raise forms.ValidationError(
+                f'As datas selecionadas devem estar no período previsto da tarefa: '
+                f'{tarefa.inicio_previsto:%d/%m/%Y} a {tarefa.fim_previsto:%d/%m/%Y}.')
         if dados.get('trabalhadores') is not None and dados.get('datas'):
             if len(dados['trabalhadores']) * len(dados['datas']) > 1000:
                 raise forms.ValidationError('Selecione no máximo 1.000 alocações por confirmação.')

@@ -7,7 +7,7 @@
 {% if revisao %}
 <section class="operation-panel" aria-labelledby="revisao-titulo">
 <h2 id="revisao-titulo">Revise antes de confirmar</h2>
-<p><strong>{{ revisao.linhas|length }} alocações</strong> · {{ revisao.tarefa.titulo }} · {{ revisao.tarefa.setor.nome }} · {{ revisao.funcao.nome }}{% if turnos_habilitados %} · {{ revisao.turno }}{% endif %}</p>
+<p><strong>{{ revisao.linhas|length }} alocações</strong> · {{ revisao.tarefa.titulo }} · {{ revisao.tarefa.setor.nome }} · {% for atividade in revisao.atividades %}{{ atividade.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if turnos_habilitados %} · {{ revisao.turno }}{% endif %}</p>
 <div class="review-scroll"><table class="review-table"><thead><tr><th>Trabalhador</th><th>Data operacional de início do turno</th><th>Turno</th></tr></thead><tbody>
 {% for linha in revisao.linhas %}<tr><td>{{ linha.trabalhador.nome }}</td><td>{{ linha.data|date:"d/m/Y" }}</td><td>{{ linha.turno|default:"Turno não informado" }}</td></tr>{% endfor %}
 </tbody></table></div>
@@ -17,7 +17,26 @@
 </section>
 <details><summary>Alterar seleção e revisar novamente</summary>
 {% endif %}
-<section class="operation-panel"><form method="post" class="operation-form">{% csrf_token %}<input type="hidden" name="retorno" value="{{ retorno }}">{{ form.as_p }}<button type="submit">Revisar planejamento</button></form></section>
+<section class="operation-panel"><form method="post" class="operation-form">{% csrf_token %}<input type="hidden" name="retorno" value="{{ retorno }}">{{ form.non_field_errors }}
+{% for field in form %}
+{% if field.name == 'atividades' %}
+<details class="activity-menu" {% if field.errors %}open{% endif %}>
+<summary>Atividades da tarefa — selecionar ou conferir</summary>
+<fieldset class="planning-choices"><legend>{{ field.label }}</legend>{{ field.errors }}{{ field }}
+<p class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p></fieldset>
+</details>
+{% elif field.name == 'trabalhadores' or field.name == 'dias_semana' %}
+<fieldset class="planning-choices" {% if field.name == 'trabalhadores' %}data-workers {% if turnos_habilitados %}data-turno-referencia="inicio"{% endif %}{% endif %}>
+<legend>{{ field.label }}</legend>{{ field.errors }}{{ field }}
+{% if field.name == 'trabalhadores' and not field.field.queryset.exists %}<p>Nenhum trabalhador disponível no seu escopo para a data informada.</p>{% endif %}
+{% if field.help_text %}<p class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}
+</fieldset>
+{% else %}
+<p>{{ field.label_tag }}{{ field.errors }}{{ field }}{% if field.help_text %}<span class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</span>{% endif %}</p>
+{% if field.name == 'tarefa' %}<p data-task-period role="status"></p>{% endif %}
+{% endif %}
+{% endfor %}
+<p data-workers-status role="status"></p><button type="submit">Revisar planejamento</button></form></section>
 {% if revisao %}</details>{% endif %}
 <p><a href="{{ voltar }}">Voltar ao quadro semanal</a></p>
 {% endblock %}

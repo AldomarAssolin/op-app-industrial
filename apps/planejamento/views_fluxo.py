@@ -32,7 +32,7 @@ def planejar(request):
                 datas = sorted(payload['datas'])
                 initial = {'tarefa':payload['tarefa'], 'trabalhadores':payload['trabalhadores'],
                     'inicio':datas[0], 'fim':datas[-1], 'dias_semana':sorted({date.fromisoformat(d).weekday() for d in datas}),
-                    'turno':payload['turno'], 'funcao_desempenhada':payload['funcao'], 'observacao':payload['observacao']}
+                    'turno':payload['turno'], 'atividades':payload.get('atividades', [payload.get('funcao')]), 'observacao':payload['observacao']}
             except (ValidationError, KeyError, IndexError, ValueError, TypeError):
                 initial = {}
             form = PlanejarForm(initial or {}, ator=request.user)

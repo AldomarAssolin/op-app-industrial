@@ -7,7 +7,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_http_methods
 from apps.organizacao.autorizacao import exigir_operacao, filtrar_escopo, ator_atual
-from apps.organizacao.models import Trabalhador
+from apps.organizacao.models import Trabalhador, Funcao
 from .models import Alocacao, Tarefa
 from .forms import TrabalhadorTurnoChoiceField
 from .views_operacionais import navegacao_operacional
@@ -16,11 +16,13 @@ from .contexto import contexto_quadro, url_quadro
 
 class CorrecaoForm(forms.ModelForm):
     tarefa = forms.ModelChoiceField(label='Tarefa (mantida nesta correção)', queryset=Tarefa.objects.none(), disabled=True)
+    atividades = forms.ModelMultipleChoiceField(label='Atividades da tarefa', queryset=Funcao.objects.all(),
+        widget=forms.CheckboxSelectMultiple, help_text='Trabalhos necessários à tarefa; não são competências individuais.')
     versao = forms.CharField(widget=forms.HiddenInput)
 
     class Meta:
         model = Alocacao
-        fields = ('tarefa','trabalhador','data','funcao_desempenhada','observacao')
+        fields = ('tarefa','trabalhador','data','observacao')
         widgets = {'data':forms.DateInput(attrs={'type':'date'}, format='%Y-%m-%d')}
         field_classes = {'trabalhador':TrabalhadorTurnoChoiceField}
 
@@ -29,6 +31,7 @@ class CorrecaoForm(forms.ModelForm):
 
     def __init__(self, *args, ator, **kwargs):
         super().__init__(*args, **kwargs)
+        self.initial['atividades'] = [a.pk for a in self.instance.atividades_da_tarefa]
         # Campo desabilitado recebe erros do modelo sem permitir troca por POST.
         self.fields['tarefa'].queryset = Tarefa.objects.filter(pk=self.instance.tarefa_id)
         try:
@@ -46,7 +49,7 @@ def _versao(obj, ator):
 
 
 @transaction.atomic
-def _gravar(ator, obj, token, *, remover=False):
+def _gravar(ator, obj, token, *, remover=False, atividades=None):
     from django.contrib.auth import get_user_model
     ator = ator_atual(ator)
     exigir_operacao(ator, 'planejamento.delete_alocacao' if remover else 'planejamento.change_alocacao')
@@ -67,7 +70,7 @@ def _gravar(ator, obj, token, *, remover=False):
     if remover:
         atual.delete(ator=ator)
     else:
-        obj.save(ator=ator)
+        obj.save(ator=ator, atividades=atividades)
 
 
 @login_required
@@ -79,7 +82,7 @@ def corrigir_alocacao(request, pk):
     form = CorrecaoForm(request.POST or None, instance=obj, ator=request.user, initial={'versao':_versao(obj,request.user), 'data':request.GET.get('data') or obj.data})
     if request.method=='POST' and form.is_valid():
         try:
-            _gravar(request.user, form.save(commit=False), form.cleaned_data['versao'])
+            _gravar(request.user, form.save(commit=False), form.cleaned_data['versao'], atividades=form.cleaned_data['atividades'])
         except ValidationError as erro:
             form.add_error(None, ' '.join(erro.messages))
         else:

@@ -84,16 +84,16 @@ def montar_quadro_semanal(*, ator, semana, setor_id=None, fim_semana=False,
         consulta = consulta.filter(tarefa__status=status)
     if dia is not None:
         consulta = consulta.filter(data=inicio + timedelta(days=dia))
-    alocacoes = list(consulta.order_by('trabalhador__nome', 'trabalhador_id', 'tarefa__titulo',
+    alocacoes = list(consulta.prefetch_related('atividades_adicionais').order_by('trabalhador__nome', 'trabalhador_id', 'tarefa__titulo',
                     'tarefa_id', 'funcao_desempenhada__nome', 'funcao_desempenhada_id', 'data'))
     mostrar_fim_semana = (dia >= 5) if dia is not None else (fim_semana or any(a.data.weekday() >= 5 for a in alocacoes))
     dias = [inicio + timedelta(days=dia)] if dia is not None else [inicio + timedelta(days=i) for i in range(7 if mostrar_fim_semana else 5)]
     grupos = {}
     for alocacao in alocacoes:
-        chave = (alocacao.trabalhador_id, alocacao.funcao_desempenhada_id, alocacao.tarefa_id, alocacao.turno_id)
+        chave = (alocacao.trabalhador_id, tuple(sorted(a.pk for a in alocacao.atividades_da_tarefa)), alocacao.tarefa_id, alocacao.turno_id)
         if chave not in grupos:
             grupos[chave] = {"trabalhador": alocacao.trabalhador,
-                             "funcao": alocacao.funcao_desempenhada, "tarefa": alocacao.tarefa, "turno": alocacao.turno,
+                             "funcao": alocacao.funcao_desempenhada, "atividades": alocacao.atividades_descricao, "tarefa": alocacao.tarefa, "turno": alocacao.turno,
                              "por_data": {}}
         grupos[chave]["por_data"][alocacao.data] = alocacao
     linhas = []

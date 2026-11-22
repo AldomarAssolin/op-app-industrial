@@ -194,6 +194,17 @@ class Alocacao(models.Model):
     data = models.DateField("data")
     funcao_desempenhada = models.ForeignKey("organizacao.Funcao", on_delete=models.PROTECT,
                                            related_name="alocacoes", verbose_name="função desempenhada")
+    atividades_adicionais = models.ManyToManyField('organizacao.Funcao',
+        through='AtividadeAlocacao', related_name='+', editable=False)
+
+    @property
+    def atividades_da_tarefa(self):
+        return list({a.pk: a for a in [self.funcao_desempenhada, *self.atividades_adicionais.all()]}.values())
+
+    @property
+    def atividades_descricao(self):
+        return ', '.join(atividade.nome for atividade in self.atividades_da_tarefa)
+
     observacao = models.TextField("observação", blank=True)
     criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                    related_name="alocacoes_criadas", editable=False)
@@ -234,7 +245,7 @@ class Alocacao(models.Model):
         if erros:
             raise ValidationError(erros)
 
-    def save(self, *args, ator=None, **kwargs):
+    def save(self, *args, ator=None, atividades=None, **kwargs):
         from apps.organizacao.models import Trabalhador
         update_fields = kwargs.get("update_fields")
         if update_fields is not None and not update_fields:
@@ -286,10 +297,22 @@ class Alocacao(models.Model):
                     raise ValidationError({'turno': 'Turno diferente do habitual vigente nessa data. Procure o Coordenador.'})
                 if type(self).objects.filter(trabalhador_id=self.trabalhador_id, data=self.data).exclude(pk=self.pk).exclude(turno_id=self.turno_id).exists():
                     raise ValidationError('Há planejamento em outro turno ou sem classificação para essa pessoa e data. Procure o Coordenador.')
+            selecionadas = None
+            if atividades is not None:
+                from apps.organizacao.models import Funcao
+                ids = sorted({atividade.pk for atividade in atividades})
+                selecionadas = list(Funcao.objects.select_for_update().filter(pk__in=ids).order_by('pk'))
+                if not ids or len(selecionadas) != len(ids):
+                    raise ValidationError('Selecione uma ou mais atividades disponíveis.')
+                self.funcao_desempenhada = selecionadas[0]
             self.full_clean()
             if update_fields is not None:
                 kwargs["update_fields"] = set(update_fields) | {"alterado_por", "alterado_em"}
+            if selecionadas is not None and update_fields is not None:
+                kwargs['update_fields'].add('funcao_desempenhada')
             super().save(*args, **kwargs)
+            if selecionadas is not None:
+                self.atividades_adicionais.set(selecionadas[1:])
             if settings.OP_APP_TURNOS_ENABLED and (anterior is None or anterior.turno_id != self.turno_id):
                 HistoricoTurnoAlocacao.objects.create(alocacao=self, trabalhador_id=self.trabalhador_id,
                     tarefa_id=self.tarefa_id, data=self.data, turno_anterior_id=anterior.turno_id if anterior else None,
@@ -411,3 +434,12 @@ class ConfirmacaoPlanejamento(models.Model):
     resumo = models.CharField(max_length=64)
     quantidade = models.PositiveIntegerField()
     registrado_em = models.DateTimeField(auto_now_add=True)
+
+
+class AtividadeAlocacao(models.Model):
+    """Atividades adicionais; a referência histórica permanece no campo legado."""
+    alocacao = models.ForeignKey(Alocacao, on_delete=models.CASCADE)
+    atividade = models.ForeignKey('organizacao.Funcao', on_delete=models.PROTECT)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=('alocacao', 'atividade'), name='alocacao_atividade_unica')]

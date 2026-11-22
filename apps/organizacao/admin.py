@@ -65,6 +65,14 @@ class SetorAdmin(EscopoAdminMixin, CadastroAdmin):
 
 @admin.register(Funcao)
 class FuncaoAdmin(SetorAdmin):
+    change_form_template = 'admin/organizacao/funcao/change_form.html'
+    change_list_template = 'admin/organizacao/funcao/change_list.html'
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'nome':
+            kwargs['help_text'] = 'Nome da atividade necessária à tarefa. Exemplos: Montagem, Soldagem, Usinagem.'
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
     # Funções continuam disponíveis para consulta do Líder; só Setores é ocultado.
     def _lider_restrito(self, request):
         return False

@@ -74,12 +74,12 @@
         <div class="table-wrap" role="region" aria-label="Planejamento por trabalhador e dia" tabindex="0">
           <table>
             <caption>Alocações de {{ inicio|date:"d/m/Y" }} a {{ fim|date:"d/m/Y" }}</caption>
-            <thead><tr><th scope="col">Trabalhador</th><th scope="col">Função desempenhada</th><th scope="col">Tarefa / setor</th>
+            <thead><tr><th scope="col">Trabalhador</th><th scope="col">Atividades da tarefa</th><th scope="col">Tarefa / setor</th>
               {% for coluna in colunas %}<th scope="col">{{ coluna.nome }}<small>{{ coluna.data|date:"d/m" }}</small></th>{% endfor %}
             </tr></thead>
             <tbody>{% for linha in linhas %}<tr>
               <th scope="row">{{ linha.trabalhador.nome }}</th>
-              <td>{{ linha.funcao.nome }}</td>
+              <td>{{ linha.atividades }}</td>
               <td>{{ linha.tarefa.titulo }}{% if turnos_habilitados %}<small>Turno: {{ linha.turno|default:"Turno não informado" }} · Data do início do turno</small>{% endif %}<small>{{ linha.tarefa.setor.nome }} · {{ linha.tarefa.get_status_display }}</small>
                 <small>Previsto: {{ linha.tarefa.inicio_previsto|date:"d/m/Y" }} a {{ linha.tarefa.fim_previsto|date:"d/m/Y" }}</small></td>
               {% for celula in linha.celulas %}<td class="day{% if celula.alocacao %} allocated{% endif %}">
