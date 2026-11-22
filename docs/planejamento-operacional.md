@@ -2,7 +2,7 @@
 
 ## Fluxo
 
-`/planejamento/planejar/` oferece tarefa, pessoas, atividades da tarefa, turno (quando habilitado),
+`/planejamento/planejar/` oferece tarefa, pessoas, turno (quando habilitado),
 período e dias da semana. Até 1.000 alocações por confirmação. As opções usam o escopo
 atual e o habitual no início informado; ao mudar o início, o seletor atualiza as opções.
 Todos os dias escolhidos são revalidados individualmente no backend.
@@ -41,7 +41,7 @@ inclusive em semanas passadas; não reconstitui o estado histórico naquela sema
 O quadro diferencia semana vazia, combinação sem resultados e ausência de acesso sem
 revelar registros ocultos. Correção/remoção aparecem conforme permissões, com endpoints
 independentes igualmente protegidos. A correção permite trabalhador autorizado, data,
-atividades da tarefa e observação; tarefa e turno daquele registro permanecem identificados. Troca de
+observação; atividades são consultadas na tarefa, e tarefa e turno daquele registro permanecem identificados. Troca de
 habitual e transferência futura continuam no fluxo do Coordenador da #35/#36.
 
 Salvar correção exige versão assinada do registro, revalidada sob os bloqueios; edição
@@ -65,12 +65,16 @@ filtros e concorrência continuam na #28; testes automatizados não substituem e
 
 **Funções**, no cadastro atual, significa atividades necessárias à execução da tarefa; não significa competência profissional do trabalhador. Exemplos: montagem, soldagem, usinagem e calandragem. A interface de planejamento usa **Atividades da tarefa** para explicitar essa diferença.
 
-Escolha a tarefa (seu período previsto aparece na seleção), marque os trabalhadores e abra o menu de atividades para marcar uma ou várias opções cadastradas em Funções. Todas as pessoas e dias revisados recebem o mesmo conjunto de atividades do planejamento. A equipe atende ao conjunto; o sistema não distribui cada atividade individualmente, nem valida competências. Planejamentos diferentes da mesma tarefa podem ter conjuntos diferentes.
+No cadastro de uma tarefa, mantenha os dados atuais e marque uma ou várias **Atividades da tarefa** no menu expansível, usando as opções de Funções. Novas tarefas exigem ao menos uma atividade. O Líder pode escolher na criação; alterações posteriores seguem a regra dos dados gerais: Coordenador do setor, Administrador ou superusuário. O histórico guarda as atividades com autor e data.
 
-O quadro semanal e a correção mostram todas as atividades da alocação. Uma pessoa com duas atividades permanece uma alocação por tarefa e dia. Datas fora do período previsto são rejeitadas sem gravação parcial; a tela preserva as seleções para correção.
+Em Planejar e em Adicionar alocação diária, escolha a tarefa e as pessoas/dias/turno. As atividades são apenas consultadas, nunca selecionadas ou alteradas nesses formulários. A correção de alocação também não altera atividades. A equipe atende ao conjunto; o sistema não distribui atividades individualmente nem valida competências.
 
-### Compatibilidade dos registros
+Todas as alocações consultam as atividades atuais da tarefa. Se o Coordenador alterar o conjunto, sua exibição muda para todas as alocações da tarefa; o histórico da tarefa preserva a fotografia anterior. Uma pessoa com duas atividades permanece uma alocação por tarefa e dia. Datas fora do período são rejeitadas sem gravação parcial.
 
-O campo técnico legado `funcao_desempenhada` mantém a primeira atividade; as demais são relações adicionais protegidas contra exclusão do cadastro. Registros antigos continuam com a atividade já registrada, sem inferir competências ou alterar o histórico. A correção operacional permite revisar o conjunto. O Admin legado mantém a edição da atividade de referência e mostra as adicionais para consulta; para editar o conjunto, use a correção operacional.
+### Banco local e implantação
 
-A integração com competências individuais e GTH Agents é uma evolução futura. Esta alteração não introduz validação de habilidades, horas ou disponibilidade, nem muda a regra entre setores (#39).
+Esta candidata será validada com banco local limpo. Não há conversão ou inferência das atividades de alocações antigas. O campo técnico legado `Alocacao.funcao_desempenhada` permanece apenas como coluna opcional de compatibilidade, fora dos formulários e sem preenchimento automático nas novas alocações. A fonte oficial de atividades é `Tarefa.atividades`, relacionada a `Funcao` (nome preservado).
+
+As migrações já publicadas são preservadas. A migração 0007 ainda não integrada foi substituída; quem aplicou a versão anterior da PR deve recriar somente o banco local conforme [o roteiro de reinício](reinicio-local-testes.md). Produção continua intacta até a conclusão e aprovação desta versão. O eventual reset de produção será tratado na implantação final, após backup e conferência de dados reais.
+
+Competências individuais e GTH Agents ficam para versões futuras. A regra entre setores (#39) permanece inalterada.

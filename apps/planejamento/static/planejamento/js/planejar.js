@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const periodo = document.querySelector('[data-task-period]');
     const mostrarPeriodo = () => {
         const opcao = tarefa?.selectedOptions[0];
+        const atividades = document.querySelector('[data-task-activities]');
+        if (atividades) atividades.textContent = opcao?.dataset.atividades ? `Atividades da tarefa: ${opcao.dataset.atividades}. Definidas no cadastro da tarefa.` : '';
         const formatar = valor => valor.split('-').reverse().join('/');
         periodo.textContent = opcao?.dataset.inicio
             ? `Período previsto da tarefa: ${formatar(opcao.dataset.inicio)} a ${formatar(opcao.dataset.fim)}.`
@@ -13,15 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tarefa.addEventListener('change', mostrarPeriodo);
         mostrarPeriodo();
     }
-    const menu = document.querySelector('.activity-menu');
-    const atualizarAtividades = () => {
-        if (!menu) return;
-        const nomes = Array.from(menu.querySelectorAll('input:checked'), campo => campo.closest('label').textContent.trim());
-        menu.querySelector('summary').textContent = nomes.length
-            ? `Atividades da tarefa: ${nomes.join(', ')}` : 'Atividades da tarefa — selecionar';
-    };
-    menu?.addEventListener('change', atualizarAtividades);
-    atualizarAtividades();
     const grupo = document.querySelector('[data-workers]');
     const data = document.getElementById('id_inicio');
     const aviso = document.querySelector('[data-workers-status]');

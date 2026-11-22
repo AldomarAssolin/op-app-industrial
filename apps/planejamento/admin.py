@@ -9,7 +9,7 @@ from django.utils.html import format_html_join
 from django.urls import path, reverse
 
 from .orientacao import proximo_passo
-from .forms import AlocacaoMultidiaForm, TarefaTurnosForm, TrabalhadorTurnoChoiceField
+from .forms import AlocacaoMultidiaForm, TarefaTurnosForm, TrabalhadorTurnoChoiceField, TarefaPeriodoSelect
 from .models import Alocacao, HistoricoTarefa, Tarefa, exigir_permissao, TurnoTarefa, ObservacaoTarefaTurno
 from .services import alocar_dias
 from apps.organizacao.admin_escopo import EscopoAdminMixin, GravacaoValidadaAdminMixin
@@ -20,7 +20,7 @@ from apps.organizacao.autorizacao import (filtrar_escopo, exigir_escopo_objeto, 
 class HistoricoTarefaInline(EscopoAdminMixin, admin.TabularInline):
     model = HistoricoTarefa
     extra = 0
-    fields = ("registrado_em", "registrado_por", "status", "inicio_previsto", "fim_previsto", "setor")
+    fields = ("registrado_em", "registrado_por", "status", "inicio_previsto", "fim_previsto", "setor", "atividades")
     readonly_fields = fields
     can_delete = False
 
@@ -69,6 +69,7 @@ class TurnoTarefaInline(admin.TabularInline):
 
 @admin.register(Tarefa)
 class TarefaAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, admin.ModelAdmin):
+    form = TarefaTurnosForm
     list_display = ("id", "titulo", "setor", "inicio_previsto", "fim_previsto", "status")
     list_display_links = ("id", "titulo")
     list_filter = (("setor", admin.RelatedOnlyFieldListFilter), "status", "inicio_previsto", "fim_previsto")
@@ -76,7 +77,11 @@ class TarefaAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, admin.ModelAdmin
     list_select_related = ("setor",)
     inlines = (HistoricoTarefaInline,)
     fields = ("titulo", "descricao", "setor", ("inicio_previsto", "fim_previsto"),
-              "status", "observacoes")
+              "status", "observacoes", "atividades_da_tarefa")
+
+    @admin.display(description='Atividades da tarefa')
+    def atividades_da_tarefa(self, obj):
+        return obj.atividades_descricao if obj and obj.pk else 'Selecione as atividades na criação.'
 
     def _restrito(self, request, obj):
         if not settings.OP_APP_TURNOS_ENABLED or administrador(request.user):
@@ -95,7 +100,7 @@ class TarefaAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, admin.ModelAdmin
     def get_readonly_fields(self, request, obj=None):
         if not settings.OP_APP_TURNOS_ENABLED:
             return super().get_readonly_fields(request, obj)
-        gerais = ('titulo', 'descricao', 'setor', 'inicio_previsto', 'fim_previsto', 'observacoes') if obj and self._restrito(request, obj) else ()
+        gerais = ('titulo', 'descricao', 'setor', 'inicio_previsto', 'fim_previsto', 'observacoes', 'atividades_da_tarefa') if obj and self._restrito(request, obj) else ()
         if obj is None and self._restrito(request, obj):
             gerais = ('observacoes',)
         return (*gerais, 'historico_observacoes')
@@ -106,8 +111,6 @@ class TarefaAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, admin.ModelAdmin
         return (HistoricoTarefaInline,)
 
     def get_form(self, request, obj=None, **kwargs):
-        if settings.OP_APP_TURNOS_ENABLED:
-            kwargs['form'] = TarefaTurnosForm
         base = super().get_form(request, obj, **kwargs)
         if not settings.OP_APP_TURNOS_ENABLED:
             return base
@@ -146,7 +149,7 @@ class TarefaAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, admin.ModelAdmin
 
     def save_model(self, request, obj, form, change):
         turno = form.cleaned_data.get('turno_operacao') if settings.OP_APP_TURNOS_ENABLED else None
-        obj.save(ator=request.user, turno_operacao=turno)
+        obj.save(ator=request.user, turno_operacao=turno, atividades=form.cleaned_data.get('atividades_da_tarefa'))
         if settings.OP_APP_TURNOS_ENABLED and form.cleaned_data.get('observacao_turno'):
             if turno is None:
                 raise ValidationError('Selecione o turno da observação.')
@@ -169,7 +172,9 @@ class TarefaAdmin(GravacaoValidadaAdminMixin, EscopoAdminMixin, admin.ModelAdmin
 
 @admin.register(Alocacao)
 class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
-    list_display = ("id", "data", "trabalhador", "tarefa", "funcao_desempenhada", "alterado_por")
+    change_form_template = 'admin/planejamento/alocacao/change_form.html'
+
+    list_display = ("id", "data", "trabalhador", "tarefa", "atividades_do_planejamento", "alterado_por")
     list_filter = ("data", ("tarefa__setor", admin.RelatedOnlyFieldListFilter),
                    ("funcao_desempenhada", admin.RelatedOnlyFieldListFilter))
     search_fields = ("trabalhador__nome", "tarefa__titulo", "observacao")
@@ -177,19 +182,19 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
     readonly_fields = ("criado_por", "alterado_por", "criado_em", "alterado_em", "atividades_do_planejamento")
     change_list_template = "admin/planejamento/alocacao/change_list.html"
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('tarefa__atividades')
+
     @admin.display(description='Atividades da tarefa (conjunto)')
     def atividades_do_planejamento(self, obj):
         if not obj or not obj.pk:
-            return 'A atividade de referência é escolhida abaixo. Para planejar várias, use Planejar.'
-        return obj.atividades_descricao + '. Para alterar o conjunto, use a correção no quadro semanal.'
+            return 'As atividades são definidas na tarefa escolhida.'
+        return obj.tarefa.atividades_descricao + '. Alterações são feitas no cadastro da tarefa.'
 
     class Media:
-        js = ('planejamento/js/turno_trabalhador.js',)
+        js = ('planejamento/js/turno_trabalhador.js', 'planejamento/js/tarefa_atividades.js')
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'funcao_desempenhada':
-            kwargs['label'] = 'Atividade de referência da tarefa'
-            kwargs['help_text'] = 'Cadastro Funções: trabalhos necessários à tarefa, não competências. Para editar várias atividades, use o quadro semanal.'
         if db_field.name == 'trabalhador' and settings.OP_APP_TURNOS_ENABLED:
             kwargs['form_class'] = TrabalhadorTurnoChoiceField
         if db_field.name == 'turno' and settings.OP_APP_TURNOS_ENABLED:
@@ -199,6 +204,9 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
                 permitidos |= turnos_permitidos(request.user, setor.pk)
             kwargs.update(queryset=Turno.objects.filter(ativo=True, pk__in=permitidos), required=True)
         campo = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == 'tarefa':
+            campo.widget = TarefaPeriodoSelect(choices=campo.choices)
+
         if db_field.name == 'trabalhador' and settings.OP_APP_TURNOS_ENABLED:
             campo.widget.attrs['data-turno-referencia'] = 'data'
             campo.help_text = 'Turno habitual na data da alocação; sem data, considera hoje.'
@@ -248,7 +256,7 @@ class AlocacaoAdmin(EscopoAdminMixin, admin.ModelAdmin):
             try:
                 registros = alocar_dias(
                     ator=request.user, trabalhador=dados["trabalhador"], tarefa=dados["tarefa"],
-                    datas=dados["datas"], funcao_desempenhada=dados["funcao_desempenhada"],
+                    datas=dados["datas"],
                     turno=dados.get("turno"),
                     observacao=dados["observacao"],
                 )

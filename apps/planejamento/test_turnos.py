@@ -403,7 +403,7 @@ class MigracaoTurnosTests(TransactionTestCase):
     def test_legado_preservado_e_reversao_bloqueada_apos_classificacao(self):
         from django.db.migrations.executor import MigrationExecutor
         antigos = [('organizacao', '0002_usuariosetor'), ('planejamento', '0003_historicotarefa_registrado_por')]
-        novos = [('organizacao', '0004_historicoacessoturno_responsavelsetor_and_more'), ('planejamento', '0007_atividadealocacao_alocacao_atividades_adicionais_and_more')]
+        novos = [('organizacao', '0005_alter_funcao_descricao'), ('planejamento', '0007_atividades_tarefa')]
         executor = MigrationExecutor(connection)
         executor.migrate(antigos)
         try:

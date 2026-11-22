@@ -75,7 +75,7 @@ class AutorizacaoTurnosTests(TestCase):
     @classmethod
     def task(cls, nome, setor, ator, turno):
         t = Tarefa(titulo=nome, setor=setor, inicio_previsto=cls.hoje - timedelta(days=10), fim_previsto=cls.hoje + timedelta(days=30))
-        t.save(ator=ator, turno_operacao=turno)
+        t.save(ator=ator, turno_operacao=turno, atividades=[cls.funcao])
         return t
 
     @classmethod
@@ -299,7 +299,7 @@ class AutorizacaoTurnosTests(TestCase):
     def test_post_admin_cria_tarefa_lider_com_observacao_por_turno(self):
         self.client.force_login(self.l1)
         r = self.client.post(reverse('admin:planejamento_tarefa_add'), {
-            'titulo':'Criada na UI', 'descricao':'Inicial', 'setor':self.a.pk,
+            'atividades_da_tarefa':[self.funcao.pk], 'titulo':'Criada na UI', 'descricao':'Inicial', 'setor':self.a.pk,
             'inicio_previsto': self.hoje.isoformat(), 'fim_previsto':(self.hoje + timedelta(days=3)).isoformat(),
             'status':'PENDENTE', 'turno_operacao':'T1', 'observacao_turno':'Apontamento inicial',
             'historico-TOTAL_FORMS':'0', 'historico-INITIAL_FORMS':'0'})
@@ -313,7 +313,7 @@ class AutorizacaoTurnosTests(TestCase):
         self.client.force_login(self.l1)
         url, dados = self.dados_admin_tarefa(self.f1, titulo='POST adulterado', observacoes='Não deve substituir', status='EM_ANDAMENTO')
         r = self.client.post(url, dados)
-        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.status_code, 302, r.context['adminform'].form.errors if r.context else '')
         self.f1.refresh_from_db()
         self.assertEqual(self.f1.titulo, 'Tarefa T1')
         self.assertEqual(self.f1.observacoes, '')

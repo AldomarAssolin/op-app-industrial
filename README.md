@@ -25,7 +25,7 @@ O OP-APP é **independente do GTH Agents**: possui repositório, banco de dados,
 
 Nesta versão, **Funções** é o nome histórico do cadastro de **atividades necessárias à tarefa**, como montagem, soldagem, usinagem e calandragem. Não representa cargo, competência, qualificação ou habilitação individual do trabalhador.
 
-No planejamento, selecione uma ou várias **Atividades da tarefa** e os trabalhadores da equipe. Para a tarefa *Eixo THC 95*, montagem e soldagem podem compor o mesmo planejamento: isso não significa que cada integrante realizará todas as atividades. A seleção vale para o conjunto de pessoas e dias revisado, sem duplicar alocações por atividade. Outros planejamentos da mesma tarefa podem ter conjuntos diferentes.
+No cadastro da tarefa, selecione uma ou várias **Atividades da tarefa**. No planejamento, escolha a tarefa e os trabalhadores da equipe. Para a tarefa *Eixo THC 95*, montagem e soldagem podem compor o mesmo planejamento: isso não significa que cada integrante realizará todas as atividades. As atividades pertencem à tarefa e são consultadas por todas as suas alocações, sem gerar duplicações. Alterações ficam no cadastro da tarefa, com autoria e histórico.
 
 O escopo atual é alocar trabalhadores às tarefas, por dia e turno. Não inclui matriz de competências, apontamento de horas ou comprovação de disponibilidade. Funções profissionais individuais poderão ser tratadas em versão futura, eventualmente com integração ao GTH Agents, sem dependência nesta versão.
 

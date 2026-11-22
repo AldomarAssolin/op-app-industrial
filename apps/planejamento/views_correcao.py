@@ -16,8 +16,6 @@ from .contexto import contexto_quadro, url_quadro
 
 class CorrecaoForm(forms.ModelForm):
     tarefa = forms.ModelChoiceField(label='Tarefa (mantida nesta correção)', queryset=Tarefa.objects.none(), disabled=True)
-    atividades = forms.ModelMultipleChoiceField(label='Atividades da tarefa', queryset=Funcao.objects.all(),
-        widget=forms.CheckboxSelectMultiple, help_text='Trabalhos necessários à tarefa; não são competências individuais.')
     versao = forms.CharField(widget=forms.HiddenInput)
 
     class Meta:
@@ -31,7 +29,6 @@ class CorrecaoForm(forms.ModelForm):
 
     def __init__(self, *args, ator, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial['atividades'] = [a.pk for a in self.instance.atividades_da_tarefa]
         # Campo desabilitado recebe erros do modelo sem permitir troca por POST.
         self.fields['tarefa'].queryset = Tarefa.objects.filter(pk=self.instance.tarefa_id)
         try:
@@ -49,7 +46,7 @@ def _versao(obj, ator):
 
 
 @transaction.atomic
-def _gravar(ator, obj, token, *, remover=False, atividades=None):
+def _gravar(ator, obj, token, *, remover=False):
     from django.contrib.auth import get_user_model
     ator = ator_atual(ator)
     exigir_operacao(ator, 'planejamento.delete_alocacao' if remover else 'planejamento.change_alocacao')
@@ -70,7 +67,7 @@ def _gravar(ator, obj, token, *, remover=False, atividades=None):
     if remover:
         atual.delete(ator=ator)
     else:
-        obj.save(ator=ator, atividades=atividades)
+        obj.save(ator=ator)
 
 
 @login_required
@@ -82,7 +79,7 @@ def corrigir_alocacao(request, pk):
     form = CorrecaoForm(request.POST or None, instance=obj, ator=request.user, initial={'versao':_versao(obj,request.user), 'data':request.GET.get('data') or obj.data})
     if request.method=='POST' and form.is_valid():
         try:
-            _gravar(request.user, form.save(commit=False), form.cleaned_data['versao'], atividades=form.cleaned_data['atividades'])
+            _gravar(request.user, form.save(commit=False), form.cleaned_data['versao'])
         except ValidationError as erro:
             form.add_error(None, ' '.join(erro.messages))
         else:

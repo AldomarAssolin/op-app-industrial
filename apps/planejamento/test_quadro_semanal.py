@@ -68,14 +68,16 @@ class QuadroSemanalTests(TestCase):
         self.assertEqual(len(linhas), 2)
         self.assertTrue(all(linha["celulas"][1]["alocacao"] for linha in linhas))
 
-    def test_funcao_diferente_e_homonimos_nao_sao_mesclados(self):
+    def test_atividades_da_tarefa_nao_duplicam_linhas_e_homonimos_nao_sao_mesclados(self):
         self.alocar([date(2026, 11, 2)])
         outra_funcao = Funcao.objects.create(nome="Inspeção")
-        self.alocar([date(2026, 11, 3)], funcao_desempenhada=outra_funcao)
+        self.tarefa.save(atividades=[self.funcao, outra_funcao])
+        self.alocar([date(2026, 11, 3)])
         homonimo = Trabalhador.objects.create(nome="Aldomar", setor_principal=self.setor,
                                               funcao_principal=self.funcao)
         self.alocar([date(2026, 11, 2)], trabalhador=homonimo)
-        self.assertEqual(len(self.quadro()["linhas"]), 3)
+        self.assertEqual(len(self.quadro()["linhas"]), 2)
+        self.assertTrue(all("Inspeção" in linha["atividades"] for linha in self.quadro()["linhas"]))
 
     def test_continuidade_entre_tres_semanas_sem_inventar_alocacoes(self):
         self.alocar([date(2026, 10, 30), date(2026, 11, 4), date(2026, 11, 9)])

@@ -1,7 +1,8 @@
 {% extends "planejamento/operacional/base.html" %}{% load static %}
 {% block title %}Corrigir alocação | OP-APP{% endblock %}
 {% block extrahead %}<link rel="stylesheet" href="{% static 'planejamento/css/fluxo.css' %}">{{ form.media }}{% endblock %}
-{% block content %}<h1>Corrigir uma alocação</h1>
+{% block content %}
+<p>Atividades da tarefa: {{ alocacao.tarefa.atividades_descricao }}. Alterações são feitas no cadastro da tarefa.</p><h1>Corrigir uma alocação</h1>
 <p>Tarefa: <strong>{{ alocacao.tarefa.titulo }}</strong> · {{ alocacao.tarefa.setor.nome }}{% if turnos_habilitados %} · {{ alocacao.turno|default:"Turno não informado" }}{% endif %}</p>
 <p>A mudança afeta somente este registro. Para trocar o turno habitual ou transferir o conjunto futuro, procure o Coordenador.</p>
 <section class="operation-panel"><form method="post" class="operation-form">{% csrf_token %}<input type="hidden" name="retorno" value="{{ retorno }}">{{ form.as_p }}<button type="submit">Salvar correção</button></form></section>

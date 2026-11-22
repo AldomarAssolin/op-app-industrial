@@ -19,13 +19,7 @@
 {% endif %}
 <section class="operation-panel"><form method="post" class="operation-form">{% csrf_token %}<input type="hidden" name="retorno" value="{{ retorno }}">{{ form.non_field_errors }}
 {% for field in form %}
-{% if field.name == 'atividades' %}
-<details class="activity-menu" {% if field.errors %}open{% endif %}>
-<summary>Atividades da tarefa — selecionar ou conferir</summary>
-<fieldset class="planning-choices"><legend>{{ field.label }}</legend>{{ field.errors }}{{ field }}
-<p class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p></fieldset>
-</details>
-{% elif field.name == 'trabalhadores' or field.name == 'dias_semana' %}
+{% if field.name == 'trabalhadores' or field.name == 'dias_semana' %}
 <fieldset class="planning-choices" {% if field.name == 'trabalhadores' %}data-workers {% if turnos_habilitados %}data-turno-referencia="inicio"{% endif %}{% endif %}>
 <legend>{{ field.label }}</legend>{{ field.errors }}{{ field }}
 {% if field.name == 'trabalhadores' and not field.field.queryset.exists %}<p>Nenhum trabalhador disponível no seu escopo para a data informada.</p>{% endif %}
@@ -33,7 +27,7 @@
 </fieldset>
 {% else %}
 <p>{{ field.label_tag }}{{ field.errors }}{{ field }}{% if field.help_text %}<span class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</span>{% endif %}</p>
-{% if field.name == 'tarefa' %}<p data-task-period role="status"></p>{% endif %}
+{% if field.name == 'tarefa' %}<p data-task-period role="status"></p><p data-task-activities></p>{% endif %}
 {% endif %}
 {% endfor %}
 <p data-workers-status role="status"></p><button type="submit">Revisar planejamento</button></form></section>

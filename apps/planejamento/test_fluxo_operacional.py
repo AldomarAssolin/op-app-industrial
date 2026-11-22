@@ -36,7 +36,7 @@ class FixtureFluxo:
     def dados(self, **extras):
         return {'tarefa':str(self.comum.pk), 'trabalhadores':[str(self.w1.pk),str(self.w3.pk)],
             'inicio':str(self.hoje+timedelta(days=2)), 'fim':str(self.hoje+timedelta(days=5)),
-            'dias_semana':['0','1','2','3'], 'turno':'T1', 'atividades':[str(self.funcao.pk)],
+            'dias_semana':['0','1','2','3'], 'turno':'T1',
             'observacao':'Planejamento de teste', **extras}
 
     def revisar(self, ator=None, **extras):
@@ -85,53 +85,98 @@ class FluxoOperacionalTests(FixtureFluxo, TestCase):
     def test_multiplas_atividades_nao_duplicam_equipe_e_aparecem_no_quadro(self):
         from apps.organizacao.models import Funcao
         montagem = Funcao.objects.create(nome='Montagem')
-        revisao = self.revisar(atividades=[self.funcao.pk, montagem.pk])
+        self.comum.save(ator=self.c1, atividades=[self.funcao, montagem])
+        revisao = self.revisar()
         self.assertEqual(len(revisao['linhas']), 8)
         recibo, novo = confirmar_planejamento(ator=self.l1, token=revisao['token'])
         self.assertTrue(novo)
         self.assertEqual(recibo.quantidade, 8)
         for alocacao in Alocacao.objects.filter(tarefa=self.comum):
-            self.assertEqual({a.pk for a in alocacao.atividades_da_tarefa}, {self.funcao.pk, montagem.pk})
+            self.assertEqual({a.pk for a in alocacao.tarefa.atividades.all()}, {self.funcao.pk, montagem.pk})
         quadro = self.client.get(reverse('planejamento:quadro_semanal'), {'semana':'2026-11-23'})
         self.assertContains(quadro, 'Atividades da tarefa')
-        self.assertContains(quadro, 'Soldagem, Montagem')
+        self.assertContains(quadro, 'Montagem, Soldagem')
         confirmar_planejamento(ator=self.l1, token=revisao['token'])
         self.assertEqual(Alocacao.objects.filter(tarefa=self.comum).count(), 8)
 
-    def test_selecao_atividades_obrigatoria_e_opcao_invalida_nao_grava(self):
+    def test_atividades_obrigatorias_no_cadastro_da_tarefa(self):
+        from .forms import TarefaTurnosForm
+        base = {'titulo':'Nova tarefa', 'setor':self.a.pk, 'inicio_previsto':'2026-11-23',
+                'fim_previsto':'2026-11-26', 'status':'PENDENTE', 'turno_operacao':'T1'}
         for atividades in ([], ['999999']):
-            resposta = self.client.post(self.url, self.dados(atividades=atividades))
-            self.assertEqual(resposta.status_code, 200)
-            self.assertIn('atividades', resposta.context['form'].errors)
-            self.assertIsNone(resposta.context['revisao'])
-        self.assertFalse(ConfirmacaoPlanejamento.objects.exists())
+            form = TarefaTurnosForm({**base, 'atividades_da_tarefa':atividades})
+            self.assertFalse(form.is_valid())
+            self.assertIn('atividades_da_tarefa', form.errors)
+        pagina = self.client.get(self.url)
+        self.assertNotContains(pagina, 'name="atividades"')
+        self.assertNotContains(pagina, 'name="funcao_desempenhada"')
 
     def test_atividade_alterada_apos_revisao_exige_nova_conferencia(self):
         from apps.organizacao.models import Funcao
         atividade = Funcao.objects.create(nome='Montagem')
-        token = self.revisar(atividades=[self.funcao.pk, atividade.pk])['token']
-        atividade.nome = 'Montagem final'
-        atividade.save()
+        token = self.revisar()['token']
+        self.comum.save(ator=self.c1, atividades=[self.funcao, atividade])
         resposta = self.client.post(self.url, {'confirmacao':token})
         self.assertContains(resposta, 'Os dados mudaram')
         self.assertFalse(ConfirmacaoPlanejamento.objects.exists())
-        self.assertEqual(set(resposta.context['form']['atividades'].value()), {self.funcao.pk, atividade.pk})
 
-    def test_correcao_preserva_e_permite_alterar_conjunto_sem_duplicar(self):
+    def test_correcao_nao_permite_alterar_atividades_da_tarefa(self):
         from apps.organizacao.models import Funcao
         atividade = Funcao.objects.create(nome='Montagem')
-        confirmar_planejamento(ator=self.l1, token=self.revisar(atividades=[self.funcao.pk, atividade.pk])['token'])
+        self.comum.save(ator=self.c1, atividades=[self.funcao, atividade])
+        confirmar_planejamento(ator=self.l1, token=self.revisar()['token'])
         alocacao = Alocacao.objects.filter(tarefa=self.comum).first()
         url = reverse('planejamento:corrigir_alocacao', args=[alocacao.pk])
         pagina = self.client.get(url)
-        self.assertEqual(set(pagina.context['form']['atividades'].value()), {self.funcao.pk, atividade.pk})
+        self.assertNotIn('atividades', pagina.context['form'].fields)
         resposta = self.client.post(url, {'versao':pagina.context['form']['versao'].value(),
             'trabalhador':alocacao.trabalhador_id, 'data':alocacao.data.isoformat(),
-            'atividades':[atividade.pk], 'observacao':'Revisão de atividades'})
+            'atividades':[atividade.pk], 'observacao':'Correção'})
         self.assertEqual(resposta.status_code,302)
-        alocacao.refresh_from_db()
-        self.assertEqual([a.pk for a in alocacao.atividades_da_tarefa], [atividade.pk])
+        self.assertEqual(set(self.comum.atividades.values_list('pk',flat=True)), {self.funcao.pk, atividade.pk})
         self.assertEqual(Alocacao.objects.filter(tarefa=self.comum).count(),8)
+
+    def test_lider_nao_altera_atividades_e_coordenador_registra_historico(self):
+        from apps.organizacao.models import Funcao
+        atividade = Funcao.objects.create(nome='Montagem')
+        with self.assertRaises(PermissionDenied):
+            self.comum.save(ator=self.l1, turno_operacao=self.t1, atividades=[atividade])
+        self.comum.save(ator=self.c1, atividades=[self.funcao, atividade])
+        ultimo = self.comum.historico.latest('pk')
+        self.assertEqual(ultimo.registrado_por_id,self.c1.pk)
+        self.assertEqual({a['id'] for a in ultimo.atividades}, {self.funcao.pk,atividade.pk})
+
+    def test_lider_cria_tarefa_com_atividades_e_admin_aloca_sem_escolher_atividade(self):
+        from apps.organizacao.models import Funcao
+        montagem = Funcao.objects.create(nome='Montagem')
+        nova = self.client.post(reverse('admin:planejamento_tarefa_add'), {
+            'titulo':'Eixo THC 95', 'setor':self.a.pk,
+            'inicio_previsto':'2026-11-23', 'fim_previsto':'2026-11-26', 'status':'PENDENTE',
+            'turno_operacao':'T1', 'atividades_da_tarefa':[self.funcao.pk, montagem.pk],
+            'historico-TOTAL_FORMS':'0', 'historico-INITIAL_FORMS':'0'})
+        self.assertEqual(nova.status_code,302)
+        tarefa = Tarefa.objects.get(titulo='Eixo THC 95')
+        self.assertEqual(set(tarefa.atividades.values_list('pk', flat=True)), {self.funcao.pk,montagem.pk})
+        self.assertEqual(len(tarefa.historico.get().atividades), 2)
+        self.client.force_login(self.c1)
+        pagina = self.client.get(reverse('admin:planejamento_alocacao_add'))
+        self.assertNotIn('funcao_desempenhada', pagina.context['adminform'].form.fields)
+        self.assertNotIn('atividades', pagina.context['adminform'].form.fields)
+        resposta = self.client.post(reverse('admin:planejamento_alocacao_add'), {
+            'trabalhador':self.w3.pk, 'tarefa':tarefa.pk, 'turno':'T1', 'data':'2026-11-23',
+            'atividades':[montagem.pk], 'funcao_desempenhada':montagem.pk})
+        self.assertEqual(resposta.status_code,302)
+        self.assertIsNone(Alocacao.objects.get(tarefa=tarefa).funcao_desempenhada_id)
+        self.assertEqual(tarefa.atividades.count(),2)
+
+    def test_lider_nao_altera_atividades_por_post_adulterado(self):
+        from apps.organizacao.models import Funcao
+        outra = Funcao.objects.create(nome='Usinagem')
+        helper = fixtures_turnos.AutorizacaoTurnosTests.dados_admin_tarefa
+        url, dados = helper(self, self.f1, status='EM_ANDAMENTO', atividades_da_tarefa=[outra.pk])
+        resposta = self.client.post(url,dados)
+        self.assertEqual(resposta.status_code,302)
+        self.assertEqual(list(self.f1.atividades.values_list('pk',flat=True)), [self.funcao.pk])
 
     def test_cadastro_funcoes_explica_atividades_na_listagem_e_no_formulario(self):
         self.client.force_login(self.root)
@@ -143,9 +188,9 @@ class FluxoOperacionalTests(FixtureFluxo, TestCase):
     def test_atividade_adicional_protegida_e_rollback_do_conjunto(self):
         from apps.organizacao.models import Funcao
         from django.db.models.deletion import ProtectedError
-        from .models import AtividadeAlocacao
         atividade = Funcao.objects.create(nome='Montagem')
-        revisao = self.revisar(atividades=[self.funcao.pk, atividade.pk])
+        self.comum.save(ator=self.c1, atividades=[self.funcao, atividade])
+        revisao = self.revisar()
         original = Alocacao.save
         def falhar(obj, *args, **kwargs):
             if obj.trabalhador_id == self.w3.pk:
@@ -153,7 +198,7 @@ class FluxoOperacionalTests(FixtureFluxo, TestCase):
             return original(obj, *args, **kwargs)
         with patch.object(Alocacao, 'save', falhar), self.assertRaises(ValidationError):
             confirmar_planejamento(ator=self.l1, token=revisao['token'])
-        self.assertFalse(AtividadeAlocacao.objects.exists())
+        self.assertFalse(Alocacao.objects.filter(tarefa=self.comum).exists())
         self.assertFalse(ConfirmacaoPlanejamento.objects.exists())
         confirmar_planejamento(ator=self.l1, token=revisao['token'])
         with self.assertRaises(ProtectedError):

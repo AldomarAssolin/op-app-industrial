@@ -22,9 +22,6 @@ class AlocacaoMultidiaForm(forms.Form):
                                          .select_related("setor_principal", "funcao_principal"))
     tarefa = forms.ModelChoiceField(queryset=Tarefa.objects.filter(
         status__in=(Tarefa.Status.PENDENTE, Tarefa.Status.EM_ANDAMENTO)))
-    funcao_desempenhada = forms.ModelChoiceField(label="Atividade da tarefa",
-                                                help_text="Atividade cadastrada em Funções; não representa competência individual.",
-                                                queryset=Funcao.objects.all())
     inicio = forms.DateField(label="Primeiro dia", widget=forms.DateInput(attrs={"type": "date"}))
     fim = forms.DateField(label="Último dia", widget=forms.DateInput(attrs={"type": "date"}))
     dias_semana = forms.MultipleChoiceField(
@@ -46,6 +43,8 @@ class AlocacaoMultidiaForm(forms.Form):
         for campo in ("trabalhador", "tarefa"):
             self.fields[campo].queryset = filtrar_escopo(ator, self.fields[campo].queryset,
                 data_referencia=referencia if campo == 'trabalhador' else None)
+        self.fields['tarefa'].queryset = self.fields['tarefa'].queryset.prefetch_related('atividades')
+        self.fields['tarefa'].widget = TarefaPeriodoSelect(choices=self.fields['tarefa'].choices)
         if settings.OP_APP_TURNOS_ENABLED:
             self.fields['trabalhador'].widget.attrs['data-turno-referencia'] = 'inicio'
             self.fields['trabalhador'].help_text = 'Turno habitual no primeiro dia informado; sem data, considera hoje.'
@@ -56,7 +55,7 @@ class AlocacaoMultidiaForm(forms.Form):
             self.fields['turno'].queryset = Turno.objects.filter(ativo=True, pk__in=permitidos)
 
     class Media:
-        js = ('planejamento/js/turno_trabalhador.js',)
+        js = ('planejamento/js/turno_trabalhador.js', 'planejamento/js/tarefa_atividades.js')
 
     def clean(self):
         dados = super().clean()
@@ -120,7 +119,26 @@ class QuadroSemanalForm(forms.Form):
         return dia
 
 
+class AtividadesWidget(forms.CheckboxSelectMultiple):
+    template_name = 'planejamento/widgets/atividades.html'
+
+
 class TarefaTurnosForm(forms.ModelForm):
+    atividades_da_tarefa = forms.ModelMultipleChoiceField(label='Atividades da tarefa', queryset=Funcao.objects.all(),
+        widget=AtividadesWidget, help_text='Trabalhos necessários à tarefa, combinados para a equipe; não são competências individuais.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and 'atividades_da_tarefa' in self.fields:
+            self.initial['atividades_da_tarefa'] = list(self.instance.atividades.values_list('pk', flat=True))
+        if not settings.OP_APP_TURNOS_ENABLED:
+            self.fields.pop('turno_operacao', None)
+            self.fields.pop('observacao_turno', None)
+
+    def _save_m2m(self):
+        # O conjunto é gravado atomicamente por Tarefa.save(), com autorização e histórico.
+        pass
+
     turno_operacao = forms.ModelChoiceField(label='Turno desta operação', queryset=Turno.objects.filter(ativo=True), required=False)
     observacao_turno = forms.CharField(label='Acrescentar observação do turno', required=False, widget=forms.Textarea)
 
@@ -140,14 +158,12 @@ class TarefaPeriodoSelect(forms.Select):
             tarefa = value.instance
             option['attrs']['data-inicio'] = tarefa.inicio_previsto.isoformat()
             option['attrs']['data-fim'] = tarefa.fim_previsto.isoformat()
+            option['attrs']['data-atividades'] = tarefa.atividades_descricao
             option['label'] = f'{label} — {tarefa.inicio_previsto:%d/%m/%Y} a {tarefa.fim_previsto:%d/%m/%Y}'
         return option
 
 
 class PlanejarForm(AlocacaoMultidiaForm):
-    atividades = forms.ModelMultipleChoiceField(label='Atividades da tarefa',
-        queryset=Funcao.objects.all(), widget=forms.CheckboxSelectMultiple,
-        help_text='Selecione um ou mais trabalhos necessários à tarefa. A equipe atende ao conjunto; isso não representa competências individuais.')
     trabalhadores = TrabalhadoresTurnoChoiceField(
         label='Trabalhadores', queryset=Trabalhador.objects.none(),
         widget=forms.CheckboxSelectMultiple)
@@ -155,15 +171,14 @@ class PlanejarForm(AlocacaoMultidiaForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['tarefa'].widget = TarefaPeriodoSelect(choices=self.fields['tarefa'].choices)
-        self.fields['tarefa'].help_text = 'As alocações devem estar dentro do período previsto exibido na tarefa.'
-        self.fields.pop('funcao_desempenhada')
+        self.fields['tarefa'].help_text = 'Atividades são definidas na tarefa. As alocações devem estar dentro do período previsto.'
         anterior = self.fields.pop('trabalhador')
         campo = self.fields['trabalhadores']
         campo.queryset = anterior.queryset
         campo.help_text = 'Selecione uma ou mais pessoas. ' + str(anterior.help_text)
         if settings.OP_APP_TURNOS_ENABLED:
             campo.widget.attrs['data-turno-referencia'] = 'inicio'
-        self.order_fields(['tarefa', 'inicio', 'fim', 'dias_semana', 'turno', 'trabalhadores', 'atividades', 'observacao'])
+        self.order_fields(['tarefa', 'inicio', 'fim', 'dias_semana', 'turno', 'trabalhadores', 'observacao'])
 
     class Media:
         extend = False
