@@ -20,9 +20,16 @@ from apps.organizacao.autorizacao import (filtrar_escopo, exigir_escopo_objeto, 
 class HistoricoTarefaInline(EscopoAdminMixin, admin.TabularInline):
     model = HistoricoTarefa
     extra = 0
-    fields = ("registrado_em", "registrado_por", "status", "inicio_previsto", "fim_previsto", "setor", "atividades")
+    fields = ("registrado_em", "registrado_por", "status", "inicio_previsto", "fim_previsto", "setor", "atividades_resumo")
     readonly_fields = fields
     can_delete = False
+
+    @admin.display(description='Atividades')
+    def atividades_resumo(self, obj):
+        if not obj or not obj.atividades:
+            return 'Atividades não informadas'
+        return ', '.join(item['nome'] for item in obj.atividades
+                         if isinstance(item, dict) and isinstance(item.get('nome'), str)) or 'Atividades não informadas'
 
     def get_fields(self, request, obj=None):
         campos = super().get_fields(request, obj)
@@ -64,7 +71,13 @@ class TurnoTarefaInline(admin.TabularInline):
         return False
 
     def get_queryset(self, request):
-        return filtrar_escopo(request.user, super().get_queryset(request))
+        # InlineModelAdmin consulta permissões sem o pai e oculta tudo do Coordenador.
+        # A autorização por tarefa continua em has_*; o queryset aplica o escopo real.
+        from apps.organizacao.autorizacao import pode_manter_equipe
+        consulta = self.model._default_manager.all().select_related('turno').order_by('turno_id', 'pk')
+        if not settings.OP_APP_TURNOS_ENABLED or not pode_manter_equipe(request.user):
+            return consulta.none()
+        return filtrar_escopo(request.user, consulta)
 
 
 @admin.register(Tarefa)
